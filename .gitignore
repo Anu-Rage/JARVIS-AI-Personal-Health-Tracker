@@ -1,0 +1,38 @@
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (machine-specific, not project config)
+.claude/settings.local.json
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
