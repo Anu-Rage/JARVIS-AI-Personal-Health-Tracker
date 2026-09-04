@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,43 +42,39 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
       <h1 className="text-2xl font-semibold">JARVIS</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          required
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <input
-          type="password"
-          required
-          minLength={6}
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
+      <Card>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Input
+            type="email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            type="password"
+            required
+            minLength={6}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
+
+          <Button type="submit" disabled={loading}>
+            {loading ? "..." : mode === "sign-in" ? "Sign in" : "Sign up"}
+          </Button>
+        </form>
 
         <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
+          type="button"
+          onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+          className="mt-4 text-sm text-text-muted underline"
         >
-          {loading ? "..." : mode === "sign-in" ? "Sign in" : "Sign up"}
+          {mode === "sign-in" ? "Need an account? Sign up" : "Have an account? Sign in"}
         </button>
-      </form>
-
-      <button
-        type="button"
-        onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-        className="text-sm text-gray-500 underline"
-      >
-        {mode === "sign-in" ? "Need an account? Sign up" : "Have an account? Sign in"}
-      </button>
+      </Card>
     </main>
   );
 }

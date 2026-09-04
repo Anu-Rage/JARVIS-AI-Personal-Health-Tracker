@@ -4,5 +4,8 @@
   "workspaces": [
     "apps/web",
     "packages/types"
-  ]
+  ],
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
+  }
 }
