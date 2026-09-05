@@ -1,7 +1,8 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 
 from supabase import Client
 
+from app.domain.dates import day_bounds_utc
 from app.domain.nutrition import NutritionValues, scale_serving
 from app.schemas.meal import MealCreate
 
@@ -10,12 +11,6 @@ _MEAL_SELECT = "*, meal_items(*, foods(name), food_servings(serving_description)
 
 class FoodNotFoundError(ValueError):
     """Raised when a meal references a food/serving that doesn't exist."""
-
-
-def _day_bounds_utc(day: date) -> tuple[str, str]:
-    start = datetime.combine(day, time.min, tzinfo=timezone.utc)
-    end = datetime.combine(day, time.max, tzinfo=timezone.utc)
-    return start.isoformat(), end.isoformat()
 
 
 def _flatten_meal_items(meal: dict) -> dict:
@@ -112,7 +107,7 @@ def list_meals(client: Client, user_id: str, day: date | None = None) -> list[di
         .order("logged_at", desc=True)
     )
     if day is not None:
-        start, end = _day_bounds_utc(day)
+        start, end = day_bounds_utc(day)
         request = request.gte("logged_at", start).lte("logged_at", end)
 
     meals = request.execute().data

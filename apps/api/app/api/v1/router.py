@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     body_metrics,
+    dashboard,
     exercises,
     foods,
     meals,
@@ -18,3 +19,4 @@ api_router.include_router(nutrition.router, prefix="/nutrition", tags=["nutritio
 api_router.include_router(exercises.router, prefix="/exercises", tags=["exercises"])
 api_router.include_router(workouts.router, prefix="/workouts", tags=["workouts"])
 api_router.include_router(body_metrics.router, prefix="/body-metrics", tags=["body-metrics"])
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])

@@ -22,3 +22,4 @@ export type WorkoutExerciseCreate = components["schemas"]["WorkoutExerciseCreate
 export type WorkoutSetCreate = components["schemas"]["WorkoutSetCreate"];
 export type BodyMetric = components["schemas"]["BodyMetric"];
 export type BodyMetricCreate = components["schemas"]["BodyMetricCreate"];
+export type DashboardResponse = components["schemas"]["DashboardResponse"];

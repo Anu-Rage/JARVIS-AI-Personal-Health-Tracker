@@ -179,6 +179,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dashboard */
+        get: operations["get_dashboard_api_v1_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -238,6 +255,14 @@ export interface components {
             /** Meal Count */
             meal_count: number;
             remaining: components["schemas"]["MacroRemaining"];
+        };
+        /** DashboardResponse */
+        DashboardResponse: {
+            profile: components["schemas"]["UserProfile"];
+            nutrition: components["schemas"]["DailyNutrition"];
+            /** Workout Completed Today */
+            workout_completed_today: boolean;
+            recent_weight: components["schemas"]["BodyMetric"] | null;
         };
         /** Exercise */
         Exercise: {
@@ -1011,6 +1036,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dashboard_api_v1_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
                 };
             };
         };
