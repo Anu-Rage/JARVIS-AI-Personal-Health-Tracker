@@ -91,6 +91,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Exercises */
+        get: operations["search_exercises_api_v1_exercises_get"];
+        put?: never;
+        /** Create Exercise */
+        post: operations["create_exercise_api_v1_exercises_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workouts */
+        get: operations["list_workouts_api_v1_workouts_get"];
+        put?: never;
+        /** Create Workout */
+        post: operations["create_workout_api_v1_workouts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workouts/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Workout */
+        delete: operations["delete_workout_api_v1_workouts__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -120,6 +173,28 @@ export interface components {
             /** Meal Count */
             meal_count: number;
             remaining: components["schemas"]["MacroRemaining"];
+        };
+        /** Exercise */
+        Exercise: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "strength" | "cardio" | "mobility" | "other";
+        };
+        /** ExerciseCreate */
+        ExerciseCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "strength" | "cardio" | "mobility" | "other";
         };
         /** Food */
         Food: {
@@ -335,6 +410,90 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** WorkoutExercise */
+        WorkoutExercise: {
+            /** Id */
+            id: string;
+            /** Exercise Id */
+            exercise_id: string;
+            /** Order Index */
+            order_index: number;
+            /** Exercise Name */
+            exercise_name?: string | null;
+            /** Workout Sets */
+            workout_sets?: components["schemas"]["WorkoutSet"][];
+            /**
+             * Volume Kg
+             * @default 0
+             */
+            volume_kg: number;
+        };
+        /** WorkoutExerciseCreate */
+        WorkoutExerciseCreate: {
+            /** Exercise Id */
+            exercise_id: string;
+            /** Sets */
+            sets: components["schemas"]["WorkoutSetCreate"][];
+        };
+        /** WorkoutSession */
+        WorkoutSession: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Ended At */
+            ended_at: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Workout Exercises */
+            workout_exercises?: components["schemas"]["WorkoutExercise"][];
+            /**
+             * Total Volume Kg
+             * @default 0
+             */
+            total_volume_kg: number;
+        };
+        /** WorkoutSessionCreate */
+        WorkoutSessionCreate: {
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Ended At */
+            ended_at?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Exercises */
+            exercises: components["schemas"]["WorkoutExerciseCreate"][];
+        };
+        /** WorkoutSet */
+        WorkoutSet: {
+            /** Id */
+            id: string;
+            /** Set Number */
+            set_number: number;
+            /** Reps */
+            reps: number | null;
+            /** Weight Kg */
+            weight_kg: number | null;
+            /** Duration Seconds */
+            duration_seconds: number | null;
+        };
+        /** WorkoutSetCreate */
+        WorkoutSetCreate: {
+            /** Reps */
+            reps?: number | null;
+            /** Weight Kg */
+            weight_kg?: number | null;
+            /** Duration Seconds */
+            duration_seconds?: number | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -540,6 +699,152 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DailyNutrition"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_exercises_api_v1_exercises_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_exercise_api_v1_exercises_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workouts_api_v1_workouts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutSession"][];
+                };
+            };
+        };
+    };
+    create_workout_api_v1_workouts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workout_api_v1_workouts__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

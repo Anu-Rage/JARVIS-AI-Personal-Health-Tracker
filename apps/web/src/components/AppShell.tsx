@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 const TABS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/meals", label: "Meals" },
+  { href: "/workouts", label: "Workouts" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
