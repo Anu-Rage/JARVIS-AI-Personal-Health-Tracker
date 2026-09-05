@@ -1,3 +1,5 @@
+import { BAR_COUNT } from "./recorder";
+
 function base64ToBlob(base64: string, mimeType = "audio/mpeg"): Blob {
   const bytes = atob(base64);
   const array = new Uint8Array(bytes.length);
@@ -6,21 +8,23 @@ function base64ToBlob(base64: string, mimeType = "audio/mpeg"): Blob {
 }
 
 /**
- * Plays TTS replies and exposes live playback amplitude for a reactive
- * visual. iOS Safari only allows an <audio> element to be played
- * programmatically if playback started (or was "unlocked") synchronously
- * within a user gesture -- by the time our real reply comes back from a
- * network round-trip, that gesture has expired. The fix is to create and
- * silently play-then-pause this same element/AudioContext during the
- * *original* tap (see unlock()), then only ever change its `src` and call
- * `.play()` again later -- iOS treats a previously-unlocked element as
- * still allowed to play programmatically after that.
+ * Plays TTS replies and exposes live playback levels (one 0-1 value per
+ * waveform bar) for a reactive visual. iOS Safari only allows an <audio>
+ * element to be played programmatically if it was already played (even
+ * silently) as a direct result of a user gesture. By the time our real
+ * reply comes back from a network round-trip, that gesture has expired --
+ * the fix is to create and silently play-then-pause this same element/
+ * AudioContext during the *original* tap (see unlock()), then only ever
+ * change its `src` and call `.play()` again later -- iOS treats a
+ * previously-unlocked element as still allowed to play programmatically
+ * after that.
  */
 export class VoicePlayer {
   private audioEl: HTMLAudioElement;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private unlocked = false;
+  private cleanupCurrent: (() => void) | null = null;
 
   constructor() {
     this.audioEl = new Audio();
@@ -37,7 +41,7 @@ export class VoicePlayer {
     this.audioContext = new AudioContext();
     const source = this.audioContext.createMediaElementSource(this.audioEl);
     this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 256;
+    this.analyser.fftSize = 64;
     source.connect(this.analyser);
     this.analyser.connect(this.audioContext.destination);
 
@@ -55,7 +59,7 @@ export class VoicePlayer {
     }
   }
 
-  playBase64(base64: string, onAmplitude: (level: number) => void): Promise<void> {
+  playBase64(base64: string, onLevels: (levels: number[]) => void): Promise<void> {
     return new Promise((resolve) => {
       const url = URL.createObjectURL(base64ToBlob(base64));
 
@@ -64,33 +68,40 @@ export class VoicePlayer {
       }
 
       const analyser = this.analyser;
-      const data = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+      const freqData = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+      const step = freqData ? Math.max(1, Math.floor(freqData.length / BAR_COUNT)) : 1;
       let rafId: number | null = null;
 
       const tick = () => {
-        if (!analyser || !data) return;
-        analyser.getByteTimeDomainData(data);
-        let sumSquares = 0;
-        for (let i = 0; i < data.length; i++) {
-          const centered = (data[i] - 128) / 128;
-          sumSquares += centered * centered;
+        if (!analyser || !freqData) return;
+        analyser.getByteFrequencyData(freqData);
+        const levels: number[] = [];
+        for (let i = 0; i < BAR_COUNT; i++) {
+          levels.push(freqData[i * step] / 255);
         }
-        const rms = Math.sqrt(sumSquares / data.length);
-        onAmplitude(Math.min(rms * 4, 1));
+        onLevels(levels);
         rafId = requestAnimationFrame(tick);
       };
 
       const cleanup = () => {
         if (rafId !== null) cancelAnimationFrame(rafId);
-        onAmplitude(0);
+        onLevels(new Array(BAR_COUNT).fill(0));
         URL.revokeObjectURL(url);
         resolve();
       };
 
+      this.cleanupCurrent = cleanup;
       this.audioEl.onended = cleanup;
       this.audioEl.onerror = cleanup;
       this.audioEl.src = url;
       this.audioEl.play().then(tick).catch(cleanup);
     });
+  }
+
+  /** Stops in-progress playback immediately (the "tap to interrupt" control). */
+  interrupt(): void {
+    if (!this.audioEl.paused) this.audioEl.pause();
+    this.cleanupCurrent?.();
+    this.cleanupCurrent = null;
   }
 }

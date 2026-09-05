@@ -1,3 +1,5 @@
+const BAR_COUNT = 24;
+
 export class VoiceRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
@@ -6,7 +8,7 @@ export class VoiceRecorder {
   private chunks: Blob[] = [];
   private rafId: number | null = null;
 
-  async start(onAmplitude: (level: number) => void): Promise<void> {
+  async start(onLevels: (levels: number[]) => void): Promise<void> {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.mediaRecorder = new MediaRecorder(this.stream);
     this.chunks = [];
@@ -18,20 +20,20 @@ export class VoiceRecorder {
     this.audioContext = new AudioContext();
     const source = this.audioContext.createMediaStreamSource(this.stream);
     this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 256;
+    this.analyser.fftSize = 64;
     source.connect(this.analyser);
 
-    const data = new Uint8Array(this.analyser.frequencyBinCount);
+    const freqData = new Uint8Array(this.analyser.frequencyBinCount);
+    const step = Math.max(1, Math.floor(freqData.length / BAR_COUNT));
+
     const tick = () => {
       if (!this.analyser) return;
-      this.analyser.getByteTimeDomainData(data);
-      let sumSquares = 0;
-      for (let i = 0; i < data.length; i++) {
-        const centered = (data[i] - 128) / 128;
-        sumSquares += centered * centered;
+      this.analyser.getByteFrequencyData(freqData);
+      const levels: number[] = [];
+      for (let i = 0; i < BAR_COUNT; i++) {
+        levels.push(freqData[i * step] / 255);
       }
-      const rms = Math.sqrt(sumSquares / data.length);
-      onAmplitude(Math.min(rms * 4, 1));
+      onLevels(levels);
       this.rafId = requestAnimationFrame(tick);
     };
     tick();
@@ -73,3 +75,5 @@ export function isVoiceRecordingSupported(): boolean {
     typeof window.MediaRecorder !== "undefined"
   );
 }
+
+export { BAR_COUNT };

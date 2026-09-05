@@ -7,8 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { JarvisOrb, type JarvisOrbState } from "@/components/JarvisOrb";
-import { VoiceRecorder, isVoiceRecordingSupported } from "@/lib/audio/recorder";
+import { JarvisVoicePanel, type JarvisVoiceState } from "@/components/JarvisVoicePanel";
+import { VoiceRecorder, isVoiceRecordingSupported, BAR_COUNT } from "@/lib/audio/recorder";
 import { VoicePlayer } from "@/lib/audio/playback";
 import type { ChatResponse, VoiceChatResponse } from "@jarvis/types";
 
@@ -17,6 +17,11 @@ interface DisplayMessage {
   content: string;
   toolsCalled?: string[];
 }
+
+const GREETING =
+  "Hi, I'm JARVIS. Ask me about your nutrition or workouts, or tell me what you ate or did -- e.g. \"2 eggs and 4 idlis for breakfast\" or \"3 sets of squats, 10 reps at 40kg\".";
+
+const ZERO_LEVELS = new Array(BAR_COUNT).fill(0);
 
 // iOS Safari's MediaRecorder produces audio/mp4, not audio/webm like
 // Chrome/Firefox -- upload the extension Whisper actually expects for
@@ -30,8 +35,11 @@ function extensionForMimeType(mimeType: string): string {
   return "webm";
 }
 
-const GREETING =
-  "Hi, I'm JARVIS. Ask me about your nutrition or workouts, or tell me what you ate or did -- e.g. \"2 eggs and 4 idlis for breakfast\" or \"3 sets of squats, 10 reps at 40kg\".";
+function formatElapsed(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export default function ChatPage() {
   const supabase = createClient();
@@ -54,11 +62,12 @@ export default function ChatPage() {
     isVoiceRecordingSupported,
     () => false,
   );
-  const [orbState, setOrbState] = useState<JarvisOrbState>("idle");
-  const [amplitude, setAmplitude] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [voiceState, setVoiceState] = useState<JarvisVoiceState>("standby");
+  const [levels, setLevels] = useState<number[]>(ZERO_LEVELS);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const playerRef = useRef<VoicePlayer | null>(null);
+  const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -69,6 +78,12 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (elapsedIntervalRef.current) clearInterval(elapsedIntervalRef.current);
+    };
+  }, []);
 
   async function sendMessage() {
     if (!accessToken || !input.trim() || sending) return;
@@ -102,9 +117,13 @@ export default function ChatPage() {
     setError(null);
     if (!recorderRef.current) recorderRef.current = new VoiceRecorder();
     try {
-      await recorderRef.current.start((level) => setAmplitude(level));
-      setIsRecording(true);
-      setOrbState("listening");
+      await recorderRef.current.start((next) => setLevels(next));
+      const startedAt = Date.now();
+      setElapsedSeconds(0);
+      elapsedIntervalRef.current = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+      }, 500);
+      setVoiceState("listening");
     } catch {
       setError("Microphone access denied or unavailable.");
     }
@@ -112,9 +131,13 @@ export default function ChatPage() {
 
   async function stopRecordingAndSend() {
     if (!recorderRef.current || !accessToken) return;
-    setIsRecording(false);
-    setOrbState("thinking");
-    setAmplitude(0);
+    if (elapsedIntervalRef.current) {
+      clearInterval(elapsedIntervalRef.current);
+      elapsedIntervalRef.current = null;
+    }
+    setElapsedSeconds(0);
+    setVoiceState("working");
+    setLevels(ZERO_LEVELS);
 
     const blob = await recorderRef.current.stop();
 
@@ -146,16 +169,24 @@ export default function ChatPage() {
         { role: "assistant", content: result.message, toolsCalled: result.tools_called },
       ]);
 
-      setOrbState("speaking");
-      await playerRef.current?.playBase64(result.audio_base64, (level) => setAmplitude(level));
-      setOrbState("idle");
+      setVoiceState("speaking");
+      await playerRef.current?.playBase64(result.audio_base64, (next) => setLevels(next));
+      setVoiceState("standby");
+      setLevels(ZERO_LEVELS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Voice chat failed");
-      setOrbState("idle");
+      setVoiceState("standby");
+      setLevels(ZERO_LEVELS);
     }
   }
 
-  function toggleRecording() {
+  function interruptSpeaking() {
+    playerRef.current?.interrupt();
+    setVoiceState("standby");
+    setLevels(ZERO_LEVELS);
+  }
+
+  function handleMicClick() {
     // Must run synchronously inside this click handler, before any await --
     // iOS Safari only allows programmatic audio playback if the element was
     // played (even silently) as a direct result of a user gesture. This
@@ -164,19 +195,31 @@ export default function ChatPage() {
     if (!playerRef.current) playerRef.current = new VoicePlayer();
     playerRef.current.unlock();
 
-    if (isRecording) {
-      stopRecordingAndSend();
-    } else {
+    if (voiceState === "standby") {
       startRecording();
+    } else if (voiceState === "listening") {
+      stopRecordingAndSend();
+    } else if (voiceState === "speaking") {
+      interruptSpeaking();
     }
   }
 
-  const busy = orbState === "thinking" || orbState === "speaking";
-  const subtitle = isRecording
-    ? "Listening..."
-    : orbState === "thinking"
-      ? "Thinking..."
-      : messages[messages.length - 1]?.content;
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
+  const transcript =
+    voiceState === "speaking" && lastAssistantMessage
+      ? { label: "REPLYING · JARVIS", text: lastAssistantMessage.content }
+      : voiceState === "standby" && lastAssistantMessage
+        ? { label: "LAST REPLY · JARVIS", text: lastAssistantMessage.content }
+        : null;
+
+  const footerLabel =
+    voiceState === "standby"
+      ? "TAP TO TALK"
+      : voiceState === "listening"
+        ? `TAP TO STOP · ${formatElapsed(elapsedSeconds)}`
+        : voiceState === "working"
+          ? "PROCESSING..."
+          : "TAP TO INTERRUPT";
 
   return (
     <AppShell>
@@ -186,7 +229,7 @@ export default function ChatPage() {
           <button
             type="button"
             onClick={() => setMode(mode === "text" ? "voice" : "text")}
-            disabled={isRecording || busy}
+            disabled={voiceState !== "standby"}
             className="text-xs text-primary disabled:opacity-40"
           >
             {mode === "text" ? "Voice mode" : "Text mode"}
@@ -195,25 +238,17 @@ export default function ChatPage() {
       </div>
 
       {mode === "voice" ? (
-        <div className="flex flex-col items-center gap-6 py-6">
-          <JarvisOrb state={orbState} amplitude={amplitude} />
-
-          <p className="min-h-12 max-w-xs text-center text-sm text-text-muted">{subtitle}</p>
-
-          <button
-            type="button"
-            onClick={toggleRecording}
-            disabled={busy}
-            className={`rounded-full px-6 py-3 text-sm font-medium transition-colors disabled:opacity-40 ${
-              isRecording
-                ? "bg-danger text-danger-foreground"
-                : "bg-primary text-primary-foreground"
-            }`}
-          >
-            {isRecording ? "Stop & send" : "Tap to talk"}
-          </button>
-
-          {error && <p className="text-xs text-danger">{error}</p>}
+        <div className="py-2">
+          <JarvisVoicePanel
+            state={voiceState}
+            levels={levels}
+            transcript={transcript}
+            footerLabel={footerLabel}
+            onMicClick={handleMicClick}
+            micDisabled={voiceState === "working"}
+            timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          />
+          {error && <p className="mt-3 text-xs text-danger">{error}</p>}
         </div>
       ) : (
         <>
