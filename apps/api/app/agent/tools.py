@@ -6,6 +6,7 @@ from supabase import Client
 from app.schemas.meal import MealCreate, MealItemCreate
 from app.schemas.workout import WorkoutExerciseCreate, WorkoutSessionCreate, WorkoutSetCreate
 from app.services import (
+    analytics_service,
     exercise_service,
     food_service,
     meal_service,
@@ -16,9 +17,11 @@ from app.services import (
 
 logger = logging.getLogger("jarvis.agent")
 
-# OpenAI function-calling tool definitions -- the MVP set from §31 of the
-# architecture doc. Every write tool here is additive/reversible (no delete
-# tool exists in this set per ADR-009), so none require a confirmation step.
+# OpenAI function-calling tool definitions. The first 6 are the MVP set from
+# §31 of the architecture doc; get_weekly_summary was added in Phase 4
+# alongside the analytics engine it wraps. Every write tool here is
+# additive/reversible (no delete tool exists in this set per ADR-009), so
+# none require a confirmation step.
 TOOLS = [
     {
         "type": "function",
@@ -141,6 +144,14 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weekly_summary",
+            "description": "Get the user's last 7 days: average calories/protein/carbs/fat, calorie-target adherence, workout count and total volume, meal/workout logging streaks, and weight change over the period.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 
@@ -235,6 +246,10 @@ def _handle_get_user_memory(client: Client, user_id: str, args: dict) -> dict:
     return {"memory": entries}
 
 
+def _handle_get_weekly_summary(client: Client, user_id: str, args: dict) -> dict:
+    return analytics_service.get_weekly_summary(client, user_id)
+
+
 _TOOL_HANDLERS = {
     "get_daily_nutrition": _handle_get_daily_nutrition,
     "log_meal": _handle_log_meal,
@@ -242,6 +257,7 @@ _TOOL_HANDLERS = {
     "log_workout": _handle_log_workout,
     "calculate_remaining_macros": _handle_calculate_remaining_macros,
     "get_user_memory": _handle_get_user_memory,
+    "get_weekly_summary": _handle_get_weekly_summary,
 }
 
 

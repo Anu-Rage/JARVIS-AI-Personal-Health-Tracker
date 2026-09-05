@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { apiFetch, ApiError } from "@/lib/api/client";
 import { AppShell } from "@/components/AppShell";
+import { WeeklyReportButton } from "@/components/WeeklyReportButton";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import type { DashboardResponse } from "@jarvis/types";
@@ -140,6 +141,8 @@ export default async function DashboardPage() {
                 {dashboard.weekly_summary.weight_change.toFixed(1)}kg this week
               </p>
             )}
+
+            <WeeklyReportButton />
           </Card>
 
           <Card className="mb-4 flex items-center justify-between">
