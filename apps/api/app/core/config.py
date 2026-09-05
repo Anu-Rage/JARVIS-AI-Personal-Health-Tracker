@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
 
     cors_origins: str = "http://localhost:3000"
+    # Vercel mints a new URL for every deployment (previews and, historically,
+    # even production aliases). Matching by pattern instead of one hardcoded
+    # URL means CORS doesn't silently break on every redeploy.
+    cors_origin_regex: str = r"^https://jarvis-ai-personal-health-tracker(-[a-zA-Z0-9]+)*\.vercel\.app$"
 
     openai_api_key: str = ""
 
