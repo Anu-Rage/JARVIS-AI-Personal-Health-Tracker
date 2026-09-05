@@ -2,51 +2,33 @@
 
 :root {
   color-scheme: light;
-  --color-bg: #f7f8f7;
+  --color-bg: #f6f7fb;
   --color-surface: #ffffff;
-  --color-border: #e2e5e2;
-  --color-text: #14201a;
-  --color-text-muted: #5c6b63;
-  --color-primary: #0d7a5f;
-  --color-primary-hover: #0a6650;
+  --color-border: #d9dde6;
+  --color-text: #10131c;
+  --color-text-muted: #656b7a;
+  --color-primary: #3b5bdb;
+  --color-primary-hover: #2f49b3;
   --color-primary-foreground: #ffffff;
-  --color-danger: #b3261e;
+  --color-danger: #c2342a;
   --color-danger-foreground: #ffffff;
-
-  /* JARVIS voice HUD -- a deliberately distinct "technical spec sheet"
-     look (monospace, grid, flat fills) from the rest of the app's
-     rounded/soft design system. Light "paper" variant. */
-  --color-hud-bg: #f8f9fb;
-  --color-hud-grid: #e4e7ec;
-  --color-hud-border: #d6dae2;
-  --color-hud-text: #111827;
-  --color-hud-text-muted: #6b7280;
-  --color-hud-accent: #3b5bdb;
-  --color-hud-accent-foreground: #ffffff;
+  --color-grid: #e4e7ec;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --color-bg: #0e1512;
-    --color-surface: #161f1a;
-    --color-border: #263029;
-    --color-text: #eaf0ec;
-    --color-text-muted: #93a29a;
-    --color-primary: #34d399;
-    --color-primary-hover: #5fe0af;
-    --color-primary-foreground: #0e1512;
+    --color-bg: #090d16;
+    --color-surface: #121a2b;
+    --color-border: #232d43;
+    --color-text: #f5f6f8;
+    --color-text-muted: #8a93a6;
+    --color-primary: #7b93ff;
+    --color-primary-hover: #93a7ff;
+    --color-primary-foreground: #090d16;
     --color-danger: #f2887f;
     --color-danger-foreground: #2a0d0b;
-
-    /* JARVIS voice HUD -- dark "steel" variant. */
-    --color-hud-bg: #0a0e17;
-    --color-hud-grid: #1a2233;
-    --color-hud-border: #262f42;
-    --color-hud-text: #f5f6f8;
-    --color-hud-text-muted: #8a93a6;
-    --color-hud-accent: #7b93ff;
-    --color-hud-accent-foreground: #0a0e17;
+    --color-grid: #1a2233;
   }
 }
 
@@ -61,13 +43,7 @@
   --color-primary-foreground: var(--color-primary-foreground);
   --color-danger: var(--color-danger);
   --color-danger-foreground: var(--color-danger-foreground);
-  --color-hud-bg: var(--color-hud-bg);
-  --color-hud-grid: var(--color-hud-grid);
-  --color-hud-border: var(--color-hud-border);
-  --color-hud-text: var(--color-hud-text);
-  --color-hud-text-muted: var(--color-hud-text-muted);
-  --color-hud-accent: var(--color-hud-accent);
-  --color-hud-accent-foreground: var(--color-hud-accent-foreground);
+  --color-grid: var(--color-grid);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -78,7 +54,17 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* JarvisVoicePanel keyframes -- the technical HUD voice UI. */
+/* Faint fixed grid -- the app's recurring "spec sheet" motif, used behind
+   the shell chrome and any HUD-flavored surface (JarvisVoicePanel, landing
+   hero) instead of flat color, to keep the whole app visually of a piece. */
+.hud-grid {
+  background-image:
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* JarvisVoicePanel + other HUD surfaces */
 @keyframes jarvis-hud-standby-pulse {
   0%,
   100% {

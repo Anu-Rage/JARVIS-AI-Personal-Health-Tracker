@@ -5,11 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const TABS = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/chat", label: "Chat" },
+  { href: "/dashboard", label: "Today" },
   { href: "/meals", label: "Meals" },
   { href: "/workouts", label: "Workouts" },
   { href: "/progress", label: "Progress" },
-  { href: "/chat", label: "Chat" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -25,13 +25,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border bg-surface">
+      <header className="hud-grid border-b border-border bg-surface">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-          <span className="text-sm font-semibold tracking-tight">JARVIS</span>
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            <span className="font-mono text-sm font-bold uppercase tracking-[0.2em]">
+              Jarvis
+            </span>
+          </div>
           <button
             type="button"
             onClick={signOut}
-            className="text-xs text-text-muted hover:text-text"
+            className="font-mono text-[10px] uppercase tracking-widest text-text-muted hover:text-text"
           >
             Sign out
           </button>
@@ -48,8 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex-1 py-3 text-center text-sm font-medium ${
-                  active ? "text-primary" : "text-text-muted"
+                className={`flex-1 border-t-2 py-3 text-center font-mono text-[11px] uppercase tracking-widest transition-colors ${
+                  active
+                    ? "border-primary text-primary"
+                    : "border-transparent text-text-muted hover:text-text"
                 }`}
               >
                 {tab.label}

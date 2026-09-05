@@ -34,47 +34,52 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/chat");
     router.refresh();
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">JARVIS</h1>
+    <main className="hud-grid flex min-h-screen items-center justify-center px-4">
+      <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center justify-center gap-2">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+          <h1 className="font-mono text-lg font-bold uppercase tracking-[0.3em]">Jarvis</h1>
+        </div>
 
-      <Card>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <Input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            type="password"
-            required
-            minLength={6}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <Card ticked>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <Input
+              type="email"
+              required
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              type="password"
+              required
+              minLength={6}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "..." : mode === "sign-in" ? "Sign in" : "Sign up"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={loading}>
+              {loading ? "..." : mode === "sign-in" ? "Sign in" : "Sign up"}
+            </Button>
+          </form>
 
-        <button
-          type="button"
-          onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-          className="mt-4 text-sm text-text-muted underline"
-        >
-          {mode === "sign-in" ? "Need an account? Sign up" : "Have an account? Sign in"}
-        </button>
-      </Card>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+            className="mt-4 text-sm text-text-muted underline"
+          >
+            {mode === "sign-in" ? "Need an account? Sign up" : "Have an account? Sign in"}
+          </button>
+        </Card>
+      </div>
     </main>
   );
 }
