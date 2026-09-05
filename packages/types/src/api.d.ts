@@ -144,6 +144,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/body-metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Body Metrics */
+        get: operations["list_body_metrics_api_v1_body_metrics_get"];
+        put?: never;
+        /** Create Body Metric */
+        post: operations["create_body_metric_api_v1_body_metrics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/body-metrics/{metric_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Body Metric */
+        delete: operations["delete_body_metric_api_v1_body_metrics__metric_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -165,6 +200,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BodyMetric */
+        BodyMetric: {
+            /** Id */
+            id: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Metric Type */
+            metric_type: string;
+            /** Value */
+            value: number;
+            /** Unit */
+            unit: string;
+        };
+        /** BodyMetricCreate */
+        BodyMetricCreate: {
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Metric Type */
+            metric_type: string;
+            /** Value */
+            value: number;
+            /** Unit */
+            unit: string;
+        };
         /** DailyNutrition */
         DailyNutrition: {
             /** Date */
@@ -834,6 +899,99 @@ export interface operations {
             header?: never;
             path: {
                 session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_body_metrics_api_v1_body_metrics_get: {
+        parameters: {
+            query?: {
+                metric_type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BodyMetric"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_body_metric_api_v1_body_metrics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BodyMetricCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BodyMetric"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_body_metric_api_v1_body_metrics__metric_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                metric_id: string;
             };
             cookie?: never;
         };
