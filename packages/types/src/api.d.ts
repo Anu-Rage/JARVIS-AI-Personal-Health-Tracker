@@ -57,6 +57,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meals/analyze-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze Meal Photo */
+        post: operations["analyze_meal_photo_api_v1_meals_analyze_photo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meals/{meal_id}": {
         parameters: {
             query?: never;
@@ -299,6 +316,14 @@ export interface components {
             /** Unit */
             unit: string;
         };
+        /** Body_analyze_meal_photo_api_v1_meals_analyze_photo_post */
+        Body_analyze_meal_photo_api_v1_meals_analyze_photo_post: {
+            /**
+             * Photo
+             * Format: binary
+             */
+            photo: string;
+        };
         /** ChatMessage */
         ChatMessage: {
             /**
@@ -493,6 +518,12 @@ export interface components {
             meal_type: "breakfast" | "lunch" | "dinner" | "snack";
             /** Items */
             items: components["schemas"]["MealItemCreate"][];
+            /**
+             * Input Source
+             * @default manual
+             * @enum {string}
+             */
+            input_source: "manual" | "text" | "photo";
         };
         /** MealItem */
         MealItem: {
@@ -545,6 +576,30 @@ export interface components {
             fat_g: number;
             /** Fiber G */
             fiber_g: number;
+        };
+        /** PhotoAnalysisItem */
+        PhotoAnalysisItem: {
+            /** Food Name */
+            food_name: string;
+            /** Quantity */
+            quantity: number;
+            resolved: components["schemas"]["ResolvedFood"] | null;
+        };
+        /** PhotoAnalysisResponse */
+        PhotoAnalysisResponse: {
+            /** Items */
+            items: components["schemas"]["PhotoAnalysisItem"][];
+        };
+        /** ResolvedFood */
+        ResolvedFood: {
+            /** Food Id */
+            food_id: string;
+            /** Serving Id */
+            serving_id: string;
+            /** Food Name */
+            food_name: string;
+            /** Serving Description */
+            serving_description: string;
         };
         /** UserMemoryCreate */
         UserMemoryCreate: {
@@ -828,6 +883,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Meal"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_meal_photo_api_v1_meals_analyze_photo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_analyze_meal_photo_api_v1_meals_analyze_photo_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoAnalysisResponse"];
                 };
             };
             /** @description Validation Error */

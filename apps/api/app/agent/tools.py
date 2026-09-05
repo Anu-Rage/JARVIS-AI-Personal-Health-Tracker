@@ -178,9 +178,12 @@ def _handle_log_meal(client: Client, user_id: str, args: dict) -> dict:
         }
 
     meal_data = MealCreate(
-        logged_at=datetime.now(timezone.utc), meal_type=args["meal_type"], items=resolved
+        logged_at=datetime.now(timezone.utc),
+        meal_type=args["meal_type"],
+        items=resolved,
+        input_source="text",
     )
-    meal = meal_service.create_meal(client, user_id, meal_data, input_source="text")
+    meal = meal_service.create_meal(client, user_id, meal_data)
     return {"success": True, "meal": meal}
 
 

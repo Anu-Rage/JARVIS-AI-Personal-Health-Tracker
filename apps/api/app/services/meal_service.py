@@ -8,6 +8,11 @@ from app.schemas.meal import MealCreate
 
 _MEAL_SELECT = "*, meal_items(*, foods(name), food_servings(serving_description))"
 
+# Text-parsed quantities come from the user's own words ("2 eggs"); photo
+# quantities are the model's visual guess at portion size, inherently less
+# reliable even once matched to a real food_servings row (§22).
+_CONFIDENCE_BY_SOURCE = {"manual": "verified", "text": "verified", "photo": "estimated"}
+
 
 class FoodNotFoundError(ValueError):
     """Raised when a meal references a food/serving that doesn't exist."""
@@ -22,9 +27,8 @@ def _flatten_meal_items(meal: dict) -> dict:
     return meal
 
 
-def create_meal(
-    client: Client, user_id: str, data: MealCreate, input_source: str = "manual"
-) -> dict:
+def create_meal(client: Client, user_id: str, data: MealCreate) -> dict:
+    confidence = _CONFIDENCE_BY_SOURCE[data.input_source]
     serving_ids = [item.serving_id for item in data.items]
     servings_result = (
         client.table("food_servings").select("*").in_("id", serving_ids).execute()
@@ -45,7 +49,7 @@ def create_meal(
                 "user_id": user_id,
                 "logged_at": data.logged_at.isoformat(),
                 "meal_type": data.meal_type,
-                "input_source": input_source,
+                "input_source": data.input_source,
             }
         )
         .execute()
@@ -71,7 +75,7 @@ def create_meal(
                 "food_id": item.food_id,
                 "serving_id": item.serving_id,
                 "quantity": item.quantity,
-                "nutrition_confidence": "verified",
+                "nutrition_confidence": confidence,
                 "calories": nutrition.calories,
                 "protein_g": nutrition.protein_g,
                 "carbs_g": nutrition.carbs_g,

@@ -1,35 +1,63 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { apiFetch, ApiError } from "@/lib/api/client";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { Food, Meal } from "@jarvis/types";
+import type { Food, Meal, PhotoAnalysisResponse } from "@jarvis/types";
 
 type MealType = Meal["meal_type"];
 
 interface DraftItem {
-  food: Food;
+  foodId: string;
+  foodName: string;
   servingId: string;
+  servingDescription?: string;
+  quantity: number;
+}
+
+interface UnresolvedPhotoItem {
+  foodName: string;
   quantity: number;
 }
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
+async function compressImage(file: File, maxDim = 1024, quality = 0.7): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d");
+  ctx?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Could not compress image"))),
+      "image/jpeg",
+      quality,
+    );
+  });
+}
+
 export default function MealsPage() {
   const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Food[]>([]);
   const [draft, setDraft] = useState<DraftItem[]>([]);
+  const [unresolvedPhotoItems, setUnresolvedPhotoItems] = useState<UnresolvedPhotoItem[]>([]);
+  const [mealSource, setMealSource] = useState<"manual" | "photo">("manual");
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -69,7 +97,16 @@ export default function MealsPage() {
   function addToDraft(food: Food) {
     const serving = food.food_servings?.[0];
     if (!serving) return;
-    setDraft((prev) => [...prev, { food, servingId: serving.id, quantity: 1 }]);
+    setDraft((prev) => [
+      ...prev,
+      {
+        foodId: food.id,
+        foodName: food.name,
+        servingId: serving.id,
+        servingDescription: serving.serving_description,
+        quantity: 1,
+      },
+    ]);
     setQuery("");
     setResults([]);
   }
@@ -82,6 +119,68 @@ export default function MealsPage() {
     setDraft((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !accessToken) return;
+
+    setAnalyzingPhoto(true);
+    setError(null);
+    try {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append("photo", compressed, "meal.jpg");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/meals/analyze-photo`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? "Failed to analyze photo");
+      }
+      const data: PhotoAnalysisResponse = await res.json();
+
+      setMealSource("photo");
+      const resolved: DraftItem[] = [];
+      const unresolved: UnresolvedPhotoItem[] = [];
+      for (const item of data.items) {
+        if (item.resolved) {
+          resolved.push({
+            foodId: item.resolved.food_id,
+            foodName: item.resolved.food_name,
+            servingId: item.resolved.serving_id,
+            servingDescription: item.resolved.serving_description,
+            quantity: item.quantity,
+          });
+        } else {
+          unresolved.push({ foodName: item.food_name, quantity: item.quantity });
+        }
+      }
+      if (resolved.length === 0 && unresolved.length === 0) {
+        setError("Couldn't identify any food in that photo -- try a clearer shot, or log it manually.");
+      }
+      setDraft((prev) => [...prev, ...resolved]);
+      setUnresolvedPhotoItems((prev) => [...prev, ...unresolved]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyze photo");
+    } finally {
+      setAnalyzingPhoto(false);
+    }
+  }
+
+  function searchForUnresolved(foodName: string) {
+    setQuery(foodName);
+  }
+
+  function dismissUnresolved(index: number) {
+    setUnresolvedPhotoItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function submitMeal() {
     if (!accessToken || draft.length === 0) return;
     setSubmitting(true);
@@ -92,14 +191,17 @@ export default function MealsPage() {
         body: JSON.stringify({
           logged_at: new Date().toISOString(),
           meal_type: mealType,
+          input_source: mealSource,
           items: draft.map((item) => ({
-            food_id: item.food.id,
+            food_id: item.foodId,
             serving_id: item.servingId,
             quantity: item.quantity,
           })),
         }),
       });
       setDraft([]);
+      setUnresolvedPhotoItems([]);
+      setMealSource("manual");
       await refreshMeals(accessToken);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to log meal");
@@ -144,13 +246,32 @@ export default function MealsPage() {
           ))}
         </div>
 
-        <Input
-          type="text"
-          autoComplete="off"
-          placeholder="Search foods (e.g. idli, egg, rice)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            autoComplete="off"
+            placeholder="Search foods (e.g. idli, egg, rice)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoSelected}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={analyzingPhoto}
+          >
+            {analyzingPhoto ? "..." : "📷"}
+          </Button>
+        </div>
 
         {results.length > 0 && (
           <ul className="mt-1 divide-y divide-border rounded-lg border border-border">
@@ -171,6 +292,35 @@ export default function MealsPage() {
           </ul>
         )}
 
+        {unresolvedPhotoItems.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {unresolvedPhotoItems.map((item, i) => (
+              <li
+                key={i}
+                className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm"
+              >
+                <span className="flex-1">
+                  Couldn&apos;t find &quot;{item.foodName}&quot; ({item.quantity})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => searchForUnresolved(item.foodName)}
+                  className="text-xs text-primary"
+                >
+                  Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dismissUnresolved(i)}
+                  className="text-xs text-danger"
+                >
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {draft.length > 0 && (
           <ul className="mt-4 space-y-2">
             {draft.map((item, i) => (
@@ -179,15 +329,13 @@ export default function MealsPage() {
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
               >
                 <span className="flex-1 text-sm">
-                  {item.food.name}
+                  {item.foodName}
                   <span className="ml-1 text-xs text-text-muted">
-                    (
-                    {
-                      item.food.food_servings?.find((s) => s.id === item.servingId)
-                        ?.serving_description
-                    }
-                    )
+                    ({item.servingDescription})
                   </span>
+                  {mealSource === "photo" && (
+                    <span className="ml-1 text-xs text-text-muted">· estimated</span>
+                  )}
                 </span>
                 <input
                   type="number"
@@ -235,6 +383,9 @@ export default function MealsPage() {
               {meal.meal_items?.map((item) => (
                 <li key={item.id}>
                   {item.quantity}x {item.food_name} — {Math.round(item.calories)} kcal
+                  {item.nutrition_confidence === "estimated" && (
+                    <span className="ml-1 text-xs italic">(estimated)</span>
+                  )}
                 </li>
               ))}
             </ul>

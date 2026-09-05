@@ -1,13 +1,17 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.core.security import get_current_user_id
 from app.db.supabase import get_service_client
 from app.schemas.meal import Meal, MealCreate
-from app.services import meal_service
+from app.schemas.photo import PhotoAnalysisResponse
+from app.services import meal_service, photo_service
 
 router = APIRouter()
+
+_ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 
 @router.get("", response_model=list[Meal])
@@ -32,6 +36,29 @@ def create_meal(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Food not found, please create it or clarify the item.",
         ) from exc
+
+
+@router.post("/analyze-photo", response_model=PhotoAnalysisResponse)
+async def analyze_meal_photo(
+    photo: UploadFile = File(...),
+    _user_id: str = Depends(get_current_user_id),
+) -> dict:
+    if photo.content_type not in _ALLOWED_PHOTO_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Photo must be JPEG, PNG, or WebP.",
+        )
+
+    image_bytes = await photo.read()
+    if len(image_bytes) > _MAX_PHOTO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Photo too large (max 8MB) -- compress it before uploading.",
+        )
+
+    client = get_service_client()
+    items = photo_service.analyze_meal_photo(client, image_bytes, photo.content_type)
+    return {"items": items}
 
 
 @router.delete("/{meal_id}", status_code=204)

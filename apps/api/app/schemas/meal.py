@@ -42,3 +42,4 @@ class MealCreate(BaseModel):
     logged_at: datetime
     meal_type: MealType
     items: list[MealItemCreate] = Field(min_length=1)
+    input_source: Literal["manual", "text", "photo"] = "manual"

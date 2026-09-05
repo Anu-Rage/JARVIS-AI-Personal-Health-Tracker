@@ -25,3 +25,6 @@ export type BodyMetricCreate = components["schemas"]["BodyMetricCreate"];
 export type DashboardResponse = components["schemas"]["DashboardResponse"];
 export type ChatMessage = components["schemas"]["ChatMessage"];
 export type ChatResponse = components["schemas"]["ChatResponse"];
+export type PhotoAnalysisItem = components["schemas"]["PhotoAnalysisItem"];
+export type PhotoAnalysisResponse = components["schemas"]["PhotoAnalysisResponse"];
+export type ResolvedFood = components["schemas"]["ResolvedFood"];
