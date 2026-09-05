@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user_id
 from app.db.supabase import get_service_client
 from app.schemas.workout import WorkoutSession, WorkoutSessionCreate
-from app.services import workout_service
+from app.services import user_service, workout_service
 
 router = APIRouter()
 
@@ -16,7 +16,8 @@ def list_workouts(
     user_id: str = Depends(get_current_user_id),
 ) -> list[dict]:
     client = get_service_client()
-    return workout_service.list_sessions(client, user_id, for_date)
+    tz_name = user_service.get_timezone(client, user_id) if for_date else None
+    return workout_service.list_sessions(client, user_id, for_date, tz_name)
 
 
 @router.post("", response_model=WorkoutSession, status_code=201)

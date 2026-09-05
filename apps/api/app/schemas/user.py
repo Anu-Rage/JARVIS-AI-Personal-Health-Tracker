@@ -9,3 +9,7 @@ class UserProfile(BaseModel):
     timezone: str
     created_at: datetime
     updated_at: datetime
+
+
+class UserProfileUpdate(BaseModel):
+    timezone: str

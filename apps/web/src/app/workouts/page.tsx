@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SearchDropdown } from "@/components/ui/SearchDropdown";
-import { DateNav, dayLabel, todayUtc } from "@/components/ui/DateNav";
+import { DateNav, dayLabel, todayLocal } from "@/components/ui/DateNav";
 import type { Exercise, WorkoutSession } from "@jarvis/types";
 
 interface DraftSet {
@@ -25,7 +25,7 @@ export default function WorkoutsPage() {
   const supabase = createClient();
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(todayUtc());
+  const [selectedDate, setSelectedDate] = useState(todayLocal());
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Exercise[]>([]);
@@ -140,7 +140,7 @@ export default function WorkoutsPage() {
       setDraft([]);
       // A new session is always logged for right now, so jump the view back
       // to today if you'd been browsing a past day.
-      const today = todayUtc();
+      const today = todayLocal();
       if (selectedDate !== today) {
         setSelectedDate(today);
       } else {

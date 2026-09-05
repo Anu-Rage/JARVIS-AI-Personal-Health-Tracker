@@ -20,8 +20,10 @@ def _get_active_goal(client: Client, user_id: str) -> dict | None:
     return result.data if result else None
 
 
-def get_daily_nutrition(client: Client, user_id: str, day: date) -> dict:
-    meals = list_meals(client, user_id, day)
+def get_daily_nutrition(
+    client: Client, user_id: str, day: date, tz_name: str | None = None
+) -> dict:
+    meals = list_meals(client, user_id, day, tz_name)
 
     item_totals = [
         NutritionValues(

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SearchDropdown } from "@/components/ui/SearchDropdown";
-import { DateNav, dayLabel, todayUtc } from "@/components/ui/DateNav";
+import { DateNav, dayLabel, todayLocal } from "@/components/ui/DateNav";
 import { StatTile } from "@/components/ui/StatTile";
 import type { DailyNutrition, Food, Meal, PhotoAnalysisResponse } from "@jarvis/types";
 
@@ -51,7 +51,7 @@ export default function MealsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(todayUtc());
+  const [selectedDate, setSelectedDate] = useState(todayLocal());
   const [meals, setMeals] = useState<Meal[]>([]);
   const [dailyNutrition, setDailyNutrition] = useState<DailyNutrition | null>(null);
   const [query, setQuery] = useState("");
@@ -244,7 +244,7 @@ export default function MealsPage() {
       // A new meal is always logged for right now, so jump the view back to
       // today if you'd been browsing a past day -- otherwise it'd silently
       // vanish from the list you're looking at.
-      const today = todayUtc();
+      const today = todayLocal();
       if (selectedDate !== today) {
         setSelectedDate(today);
       } else {

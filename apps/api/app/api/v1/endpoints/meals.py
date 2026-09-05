@@ -6,7 +6,7 @@ from app.core.security import get_current_user_id
 from app.db.supabase import get_service_client
 from app.schemas.meal import Meal, MealCreate
 from app.schemas.photo import PhotoAnalysisResponse
-from app.services import meal_service, photo_service
+from app.services import meal_service, photo_service, user_service
 
 router = APIRouter()
 
@@ -20,7 +20,8 @@ def list_meals(
     user_id: str = Depends(get_current_user_id),
 ) -> list[dict]:
     client = get_service_client()
-    return meal_service.list_meals(client, user_id, for_date)
+    tz_name = user_service.get_timezone(client, user_id) if for_date else None
+    return meal_service.list_meals(client, user_id, for_date, tz_name)
 
 
 @router.post("", response_model=Meal, status_code=201)

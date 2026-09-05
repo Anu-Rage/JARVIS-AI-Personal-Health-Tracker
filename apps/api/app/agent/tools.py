@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from supabase import Client
 
+from app.domain.dates import today_in_timezone
 from app.schemas.meal import MealCreate, MealItemCreate
 from app.schemas.workout import WorkoutExerciseCreate, WorkoutSessionCreate, WorkoutSetCreate
 from app.services import (
@@ -12,6 +13,7 @@ from app.services import (
     meal_service,
     nutrition_service,
     user_memory_service,
+    user_service,
     workout_service,
 )
 
@@ -156,8 +158,9 @@ TOOLS = [
 
 
 def _handle_get_daily_nutrition(client: Client, user_id: str, args: dict) -> dict:
-    today = datetime.now(timezone.utc).date()
-    return nutrition_service.get_daily_nutrition(client, user_id, today)
+    tz_name = user_service.get_timezone(client, user_id)
+    today = today_in_timezone(tz_name)
+    return nutrition_service.get_daily_nutrition(client, user_id, today, tz_name)
 
 
 def _handle_log_meal(client: Client, user_id: str, args: dict) -> dict:
@@ -229,8 +232,9 @@ def _handle_log_workout(client: Client, user_id: str, args: dict) -> dict:
 
 
 def _handle_calculate_remaining_macros(client: Client, user_id: str, args: dict) -> dict:
-    today = datetime.now(timezone.utc).date()
-    result = nutrition_service.get_daily_nutrition(client, user_id, today)
+    tz_name = user_service.get_timezone(client, user_id)
+    today = today_in_timezone(tz_name)
+    result = nutrition_service.get_daily_nutrition(client, user_id, today, tz_name)
     return {"remaining": result["remaining"], "totals": result["totals"]}
 
 

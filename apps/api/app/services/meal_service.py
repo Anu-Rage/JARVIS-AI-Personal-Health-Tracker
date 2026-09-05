@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 
 from supabase import Client
 
-from app.domain.dates import day_bounds_utc
+from app.domain.dates import local_day_bounds_utc
 from app.domain.nutrition import NutritionValues, scale_serving
 from app.schemas.meal import MealCreate
 
@@ -113,7 +113,9 @@ def get_meal(client: Client, user_id: str, meal_id: str) -> dict | None:
     return _flatten_meal_items(result.data)
 
 
-def list_meals(client: Client, user_id: str, day: date | None = None) -> list[dict]:
+def list_meals(
+    client: Client, user_id: str, day: date | None = None, tz_name: str | None = None
+) -> list[dict]:
     request = (
         client.table("meals")
         .select(_MEAL_SELECT)
@@ -122,7 +124,7 @@ def list_meals(client: Client, user_id: str, day: date | None = None) -> list[di
         .order("logged_at", desc=True)
     )
     if day is not None:
-        start, end = day_bounds_utc(day)
+        start, end = local_day_bounds_utc(day, tz_name)
         request = request.gte("logged_at", start).lte("logged_at", end)
 
     meals = request.execute().data

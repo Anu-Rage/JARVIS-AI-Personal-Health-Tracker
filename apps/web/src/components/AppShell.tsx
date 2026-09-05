@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { apiFetch } from "@/lib/api/client";
+import { detectTimezone } from "@/lib/timezone";
+import type { UserProfile } from "@jarvis/types";
 
 const TABS = [
   { href: "/chat", label: "Chat" },
@@ -16,6 +20,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    // Every "today" the backend computes (dashboard, nutrition, meal/workout
+    // day filters) is anchored to the profile's stored timezone, which
+    // defaults to "UTC" until something sets it -- silently misdating
+    // "today" for hours around midnight for anyone not on UTC. Sync the
+    // browser's real timezone in once per load rather than requiring a
+    // settings page.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      try {
+        const profile = await apiFetch<UserProfile>("/api/v1/users/me", session.access_token);
+        const detected = detectTimezone();
+        if (profile.timezone !== detected) {
+          await apiFetch<UserProfile>("/api/v1/users/me", session.access_token, {
+            method: "PATCH",
+            body: JSON.stringify({ timezone: detected }),
+          });
+        }
+      } catch {
+        // non-critical -- worst case "today" stays anchored to the old zone
+      }
+    });
+  }, [supabase]);
 
   async function signOut() {
     await supabase.auth.signOut();

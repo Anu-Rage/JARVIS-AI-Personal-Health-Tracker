@@ -1,20 +1,22 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, timedelta
 
 from supabase import Client
 
 from app.domain.analytics import calorie_adherence_rate, current_streak, mean
-from app.domain.dates import day_bounds_utc
+from app.domain.dates import local_day_bounds_utc, to_local_date, today_in_timezone
 from app.domain.nutrition import NutritionValues, sum_nutrition
 from app.domain.workout import SetVolume, calculate_total_volume
+from app.services import user_service
 
 
 def get_weekly_summary(client: Client, user_id: str, period_days: int = 7) -> dict:
-    today = datetime.now(timezone.utc).date()
+    tz_name = user_service.get_timezone(client, user_id)
+    today = today_in_timezone(tz_name)
     start_day = today - timedelta(days=period_days - 1)
-    start_iso, _ = day_bounds_utc(start_day)
-    _, end_iso = day_bounds_utc(today)
+    start_iso, _ = local_day_bounds_utc(start_day, tz_name)
+    _, end_iso = local_day_bounds_utc(today, tz_name)
 
-    daily_totals = _daily_nutrition_totals(client, user_id, start_iso, end_iso)
+    daily_totals = _daily_nutrition_totals(client, user_id, start_iso, end_iso, tz_name)
     days_logged = len(daily_totals)
     calorie_values = [t.calories for t in daily_totals.values()]
 
@@ -26,7 +28,9 @@ def get_weekly_summary(client: Client, user_id: str, period_days: int = 7) -> di
     meal_days = {date.fromisoformat(d) for d in daily_totals}
     meal_streak = current_streak(meal_days, today)
 
-    workout_days, workout_count, total_volume = _workout_stats(client, user_id, start_iso, end_iso)
+    workout_days, workout_count, total_volume = _workout_stats(
+        client, user_id, start_iso, end_iso, tz_name
+    )
     workout_streak = current_streak(workout_days, today)
 
     weight_start, weight_end = _weight_range(client, user_id, start_iso, end_iso)
@@ -53,7 +57,7 @@ def get_weekly_summary(client: Client, user_id: str, period_days: int = 7) -> di
 
 
 def _daily_nutrition_totals(
-    client: Client, user_id: str, start_iso: str, end_iso: str
+    client: Client, user_id: str, start_iso: str, end_iso: str, tz_name: str | None = None
 ) -> dict[str, NutritionValues]:
     result = (
         client.table("meals")
@@ -67,7 +71,7 @@ def _daily_nutrition_totals(
 
     by_day: dict[str, list[NutritionValues]] = {}
     for meal in result.data:
-        day_key = meal["logged_at"][:10]
+        day_key = to_local_date(meal["logged_at"], tz_name).isoformat()
         items = [
             NutritionValues(
                 calories=item["calories"],
@@ -98,7 +102,7 @@ def _get_active_goal(client: Client, user_id: str) -> dict | None:
 
 
 def _workout_stats(
-    client: Client, user_id: str, start_iso: str, end_iso: str
+    client: Client, user_id: str, start_iso: str, end_iso: str, tz_name: str | None = None
 ) -> tuple[set[date], int, float]:
     result = (
         client.table("workout_sessions")
@@ -113,7 +117,7 @@ def _workout_stats(
     workout_days: set[date] = set()
     all_sets: list[SetVolume] = []
     for session in result.data:
-        workout_days.add(date.fromisoformat(session["started_at"][:10]))
+        workout_days.add(to_local_date(session["started_at"], tz_name))
         for we in session.get("workout_exercises", []):
             for s in we.get("workout_sets", []):
                 all_sets.append(SetVolume(reps=s["reps"] or 0, weight_kg=s["weight_kg"] or 0))

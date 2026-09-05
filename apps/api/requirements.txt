@@ -6,3 +6,7 @@ pyjwt==2.13.0
 supabase==2.31.0
 openai==3.8.0
 python-multipart==0.0.32
+# zoneinfo (stdlib) relies on the OS shipping the IANA tz database -- not
+# guaranteed on Windows or minimal container images. Installing tzdata makes
+# ZoneInfo(...) work reliably everywhere regardless of the host OS.
+tzdata==2025.2

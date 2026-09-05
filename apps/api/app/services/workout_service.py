@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 
 from supabase import Client
 
-from app.domain.dates import day_bounds_utc
+from app.domain.dates import local_day_bounds_utc
 from app.domain.workout import SetVolume, calculate_total_volume
 from app.schemas.workout import WorkoutSessionCreate
 
@@ -97,7 +97,9 @@ def get_session(client: Client, user_id: str, session_id: str) -> dict | None:
     return _with_computed_volume(result.data)
 
 
-def list_sessions(client: Client, user_id: str, for_date: date | None = None) -> list[dict]:
+def list_sessions(
+    client: Client, user_id: str, for_date: date | None = None, tz_name: str | None = None
+) -> list[dict]:
     request = (
         client.table("workout_sessions")
         .select(_SESSION_SELECT)
@@ -106,7 +108,7 @@ def list_sessions(client: Client, user_id: str, for_date: date | None = None) ->
         .order("started_at", desc=True)
     )
     if for_date is not None:
-        start, end = day_bounds_utc(for_date)
+        start, end = local_day_bounds_utc(for_date, tz_name)
         request = request.gte("started_at", start).lte("started_at", end)
     return [_with_computed_volume(session) for session in request.execute().data]
 

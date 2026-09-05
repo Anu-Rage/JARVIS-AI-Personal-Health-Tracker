@@ -18,7 +18,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update My Profile */
+        patch: operations["update_my_profile_api_v1_users_me_patch"];
         trace?: never;
     };
     "/api/v1/goals": {
@@ -810,6 +811,11 @@ export interface components {
              */
             updated_at: string;
         };
+        /** UserProfileUpdate */
+        UserProfileUpdate: {
+            /** Timezone */
+            timezone: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -976,6 +982,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+        };
+    };
+    update_my_profile_api_v1_users_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
