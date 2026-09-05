@@ -32,3 +32,4 @@ export type Goal = components["schemas"]["Goal"];
 export type GoalCreate = components["schemas"]["GoalCreate"];
 export type WeeklySummary = components["schemas"]["WeeklySummary"];
 export type WeeklyReport = components["schemas"]["WeeklyReport"];
+export type VoiceChatResponse = components["schemas"]["VoiceChatResponse"];

@@ -41,9 +41,12 @@ def _get_openai_client() -> OpenAI:
     return OpenAI(api_key=get_settings().openai_api_key)
 
 
-def run_chat(client: Client, user_id: str, messages: list[dict]) -> dict:
+def run_chat(
+    client: Client, user_id: str, messages: list[dict], extra_instructions: str | None = None
+) -> dict:
     openai_client = _get_openai_client()
-    conversation: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}, *messages]
+    system_prompt = SYSTEM_PROMPT + (f"\n{extra_instructions}" if extra_instructions else "")
+    conversation: list[dict] = [{"role": "system", "content": system_prompt}, *messages]
     tools_called: list[str] = []
     total_prompt_tokens = 0
     total_completion_tokens = 0

@@ -283,6 +283,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/voice-chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Voice Chat */
+        post: operations["voice_chat_api_v1_ai_voice_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/analytics/weekly": {
         parameters: {
             query?: never;
@@ -375,6 +392,19 @@ export interface components {
              * Format: binary
              */
             photo: string;
+        };
+        /** Body_voice_chat_api_v1_ai_voice_chat_post */
+        Body_voice_chat_api_v1_ai_voice_chat_post: {
+            /**
+             * Audio
+             * Format: binary
+             */
+            audio: string;
+            /**
+             * History
+             * @default []
+             */
+            history: string;
         };
         /** ChatMessage */
         ChatMessage: {
@@ -742,6 +772,17 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VoiceChatResponse */
+        VoiceChatResponse: {
+            /** Transcript */
+            transcript: string;
+            /** Message */
+            message: string;
+            /** Tools Called */
+            tools_called: string[];
+            /** Audio Base64 */
+            audio_base64: string;
         };
         /** WeeklyReport */
         WeeklyReport: {
@@ -1539,6 +1580,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    voice_chat_api_v1_ai_voice_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_voice_chat_api_v1_ai_voice_chat_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceChatResponse"];
                 };
             };
             /** @description Validation Error */

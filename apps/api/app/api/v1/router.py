@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     reports,
     user_memory,
     users,
+    voice,
     workouts,
 )
 
@@ -28,5 +29,6 @@ api_router.include_router(body_metrics.router, prefix="/body-metrics", tags=["bo
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(user_memory.router, prefix="/user-memory", tags=["user-memory"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+api_router.include_router(voice.router, prefix="/ai", tags=["ai"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
