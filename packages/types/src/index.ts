@@ -23,3 +23,5 @@ export type WorkoutSetCreate = components["schemas"]["WorkoutSetCreate"];
 export type BodyMetric = components["schemas"]["BodyMetric"];
 export type BodyMetricCreate = components["schemas"]["BodyMetricCreate"];
 export type DashboardResponse = components["schemas"]["DashboardResponse"];
+export type ChatMessage = components["schemas"]["ChatMessage"];
+export type ChatResponse = components["schemas"]["ChatResponse"];

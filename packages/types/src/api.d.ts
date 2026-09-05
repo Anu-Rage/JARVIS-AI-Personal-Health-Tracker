@@ -196,6 +196,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/user-memory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List User Memory */
+        get: operations["list_user_memory_api_v1_user_memory_get"];
+        put?: never;
+        /** Set User Memory */
+        post: operations["set_user_memory_api_v1_user_memory_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/user-memory/{memory_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete User Memory */
+        delete: operations["delete_user_memory_api_v1_user_memory__memory_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["chat_api_v1_ai_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -246,6 +298,28 @@ export interface components {
             value: number;
             /** Unit */
             unit: string;
+        };
+        /** ChatMessage */
+        ChatMessage: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Messages */
+            messages: components["schemas"]["ChatMessage"][];
+        };
+        /** ChatResponse */
+        ChatResponse: {
+            /** Message */
+            message: string;
+            /** Tools Called */
+            tools_called: string[];
         };
         /** DailyNutrition */
         DailyNutrition: {
@@ -471,6 +545,32 @@ export interface components {
             fat_g: number;
             /** Fiber G */
             fiber_g: number;
+        };
+        /** UserMemoryCreate */
+        UserMemoryCreate: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "goal" | "equipment" | "preference" | "constraint" | "observation";
+            /** Key */
+            key: string;
+            /** Value */
+            value: string;
+        };
+        /** UserMemoryEntry */
+        UserMemoryEntry: {
+            /** Id */
+            id: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "goal" | "equipment" | "preference" | "constraint" | "observation";
+            /** Key */
+            key: string;
+            /** Value */
+            value: string;
         };
         /** UserProfile */
         UserProfile: {
@@ -1056,6 +1156,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
+        };
+    };
+    list_user_memory_api_v1_user_memory_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserMemoryEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_user_memory_api_v1_user_memory_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserMemoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserMemoryEntry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_memory_api_v1_user_memory__memory_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_api_v1_ai_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

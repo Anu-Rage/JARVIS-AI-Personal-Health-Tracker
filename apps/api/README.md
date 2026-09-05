@@ -20,6 +20,21 @@ API runs at `http://localhost:8000`. Interactive docs at `/docs`.
 pytest
 ```
 
+Runs unit tests only. The AI evaluation suite (`tests/eval/`) is excluded by
+default since it makes real OpenAI calls against the real Supabase project —
+run it explicitly when touching the agent/tool layer:
+
+```bash
+RUN_AI_EVALS=1 pytest tests/eval -v
+```
+
+It checks the behaviors the architecture doc calls out in §29: the model
+selects the right tool instead of guessing, an unresolvable food is never
+silently logged with invented nutrition, and a delete request is declined
+rather than executed (no delete tool exists in the MVP set). Each test
+creates and tears down its own throwaway user. Costs a fraction of a cent
+per run.
+
 ## Structure
 
 - `app/main.py` — app factory, CORS, router mounting, `/health`
@@ -28,6 +43,7 @@ pytest
 - `app/db/supabase.py` — server-side Supabase client (service-role key, bypasses RLS by design)
 - `app/api/v1/` — versioned routers and endpoints
 - `app/schemas/` — Pydantic response/request models
+- `app/agent/` — the AI tool layer (`tools.py`) and chat orchestration loop (`orchestrator.py`); tools call the same application services the REST API uses, never a separate write path
 
 ## Auth model
 

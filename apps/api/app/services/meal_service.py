@@ -22,7 +22,9 @@ def _flatten_meal_items(meal: dict) -> dict:
     return meal
 
 
-def create_meal(client: Client, user_id: str, data: MealCreate) -> dict:
+def create_meal(
+    client: Client, user_id: str, data: MealCreate, input_source: str = "manual"
+) -> dict:
     serving_ids = [item.serving_id for item in data.items]
     servings_result = (
         client.table("food_servings").select("*").in_("id", serving_ids).execute()
@@ -43,7 +45,7 @@ def create_meal(client: Client, user_id: str, data: MealCreate) -> dict:
                 "user_id": user_id,
                 "logged_at": data.logged_at.isoformat(),
                 "meal_type": data.meal_type,
-                "input_source": "manual",
+                "input_source": input_source,
             }
         )
         .execute()
