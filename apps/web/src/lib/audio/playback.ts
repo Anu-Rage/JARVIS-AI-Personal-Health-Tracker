@@ -59,13 +59,20 @@ export class VoicePlayer {
     }
   }
 
-  playBase64(base64: string, onLevels: (levels: number[]) => void): Promise<void> {
+  async playBase64(base64: string, onLevels: (levels: number[]) => void): Promise<void> {
+    // Chrome auto-suspends an idle AudioContext to save power. The voice
+    // round-trip (record -> transcribe -> chat -> TTS) easily takes long
+    // enough for that to kick in, so by the time we get here the context
+    // can be suspended again even though unlock() already ran once --
+    // .play() still resolves and looks like it's playing, but the graph
+    // routing sound to the speakers stays dead silent until resume()
+    // actually completes, so it must be awaited before starting playback.
+    if (this.audioContext && this.audioContext.state !== "running") {
+      await this.audioContext.resume();
+    }
+
     return new Promise((resolve) => {
       const url = URL.createObjectURL(base64ToBlob(base64));
-
-      if (this.audioContext?.state === "suspended") {
-        this.audioContext.resume();
-      }
 
       const analyser = this.analyser;
       const freqData = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
