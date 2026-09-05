@@ -5,6 +5,8 @@ interface SearchDropdownProps<T> {
   getKey: (item: T) => string;
   onSelect: (item: T) => void;
   renderItem: (item: T) => ReactNode;
+  /** Only render while the paired input is focused -- otherwise stale results reappear. */
+  open: boolean;
   /** Current search text -- enables the "estimate with AI" row when nothing matches. */
   query?: string;
   onEstimate?: (query: string) => void;
@@ -19,13 +21,14 @@ export function SearchDropdown<T>({
   getKey,
   onSelect,
   renderItem,
+  open,
   query,
   onEstimate,
   estimating,
 }: SearchDropdownProps<T>) {
   const trimmedQuery = query?.trim() ?? "";
   const showEstimate = !!onEstimate && items.length === 0 && trimmedQuery.length > 1;
-  if (items.length === 0 && !showEstimate) return null;
+  if (!open || (items.length === 0 && !showEstimate)) return null;
 
   return (
     <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">

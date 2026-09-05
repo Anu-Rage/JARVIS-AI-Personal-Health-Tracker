@@ -60,6 +60,7 @@ export default function MealsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [estimatingFood, setEstimatingFood] = useState(false);
+  const [foodSearchFocused, setFoodSearchFocused] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -273,6 +274,8 @@ export default function MealsPage() {
               placeholder="Search foods (e.g. idli, egg, rice)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setFoodSearchFocused(true)}
+              onBlur={() => setTimeout(() => setFoodSearchFocused(false), 150)}
             />
             <SearchDropdown
               items={results}
@@ -286,6 +289,7 @@ export default function MealsPage() {
                   </span>
                 </>
               )}
+              open={foodSearchFocused}
               query={query}
               onEstimate={estimateNewFood}
               estimating={estimatingFood}

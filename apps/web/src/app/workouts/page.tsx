@@ -31,6 +31,7 @@ export default function WorkoutsPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [estimatingExercise, setEstimatingExercise] = useState(false);
+  const [exerciseSearchFocused, setExerciseSearchFocused] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -166,6 +167,8 @@ export default function WorkoutsPage() {
             placeholder="Search exercises (e.g. squat, pull-up)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setExerciseSearchFocused(true)}
+            onBlur={() => setTimeout(() => setExerciseSearchFocused(false), 150)}
           />
           <SearchDropdown
             items={results}
@@ -179,6 +182,7 @@ export default function WorkoutsPage() {
                 </span>
               </>
             )}
+            open={exerciseSearchFocused}
             query={query}
             onEstimate={estimateNewExercise}
             estimating={estimatingExercise}

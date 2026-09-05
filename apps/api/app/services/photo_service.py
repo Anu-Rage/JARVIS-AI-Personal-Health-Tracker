@@ -82,7 +82,27 @@ def analyze_meal_photo(client: Client, image_bytes: bytes, content_type: str) ->
         quantity = item.get("quantity")
         if not food_name or not quantity:
             continue
+
         resolved = food_service.resolve_food_serving_by_name(client, food_name)
+        if resolved is None:
+            # Same fallback as text/voice logging: don't leave the user
+            # stuck manually searching for something the photo already
+            # identified -- estimate it and store it as a normal catalog
+            # entry. Only swallow a failure here (leaving it unresolved
+            # for the existing manual-search UI) so one bad estimate call
+            # doesn't take down the whole photo analysis.
+            try:
+                food = food_service.estimate_and_create_food(client, food_name)
+                serving = food["food_servings"][0]
+                resolved = {
+                    "food_id": food["id"],
+                    "serving_id": serving["id"],
+                    "food_name": food["name"],
+                    "serving_description": serving["serving_description"],
+                }
+            except Exception:
+                logger.exception("Failed to estimate photo-detected food: %s", food_name)
+
         results.append({"food_name": food_name, "quantity": quantity, "resolved": resolved})
 
     return results
