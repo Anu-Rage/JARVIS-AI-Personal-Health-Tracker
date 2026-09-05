@@ -7,6 +7,13 @@ function base64ToBlob(base64: string, mimeType = "audio/mpeg"): Blob {
   return new Blob([array], { type: mimeType });
 }
 
+// A real (if silent) source so unlock()'s priming play() actually resolves
+// instead of rejecting immediately with "no supported sources" -- rejecting
+// there means the element never genuinely finishes a play() during the
+// gesture, so it isn't reliably treated as activated later.
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+
 /**
  * Plays TTS replies and exposes live playback levels (one 0-1 value per
  * waveform bar) for a reactive visual. iOS Safari only allows an <audio>
@@ -33,7 +40,7 @@ export class VoicePlayer {
   /** Call synchronously from inside a click/tap handler, before any await. */
   unlock(): void {
     if (this.unlocked) {
-      if (this.audioContext?.state === "suspended") this.audioContext.resume();
+      if (this.audioContext?.state !== "running") this.audioContext?.resume();
       return;
     }
     this.unlocked = true;
@@ -45,7 +52,13 @@ export class VoicePlayer {
     source.connect(this.analyser);
     this.analyser.connect(this.audioContext.destination);
 
+    // Chrome requires the context to be explicitly resumed inside the same
+    // gesture that created it -- merely constructing it during a click
+    // isn't always enough to count as user-activated.
+    this.audioContext.resume();
+
     this.audioEl.muted = true;
+    this.audioEl.src = SILENT_WAV;
     const attempt = this.audioEl.play();
     if (attempt) {
       attempt
