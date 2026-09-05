@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SearchDropdown } from "@/components/ui/SearchDropdown";
+import { DateNav, dayLabel, todayUtc } from "@/components/ui/DateNav";
 import type { Exercise, WorkoutSession } from "@jarvis/types";
 
 interface DraftSet {
@@ -24,6 +25,7 @@ export default function WorkoutsPage() {
   const supabase = createClient();
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(todayUtc());
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Exercise[]>([]);
@@ -40,8 +42,8 @@ export default function WorkoutsPage() {
   }, [supabase]);
 
   useEffect(() => {
-    if (accessToken) refreshSessions(accessToken);
-  }, [accessToken]);
+    if (accessToken) refreshSessions(accessToken, selectedDate);
+  }, [accessToken, selectedDate]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -59,9 +61,12 @@ export default function WorkoutsPage() {
     return () => clearTimeout(handle);
   }, [query, accessToken]);
 
-  async function refreshSessions(token: string) {
+  async function refreshSessions(token: string, forDate: string) {
     try {
-      const data = await apiFetch<WorkoutSession[]>("/api/v1/workouts", token);
+      const data = await apiFetch<WorkoutSession[]>(
+        `/api/v1/workouts?for_date=${forDate}`,
+        token,
+      );
       setSessions(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load workouts");
@@ -133,7 +138,14 @@ export default function WorkoutsPage() {
         }),
       });
       setDraft([]);
-      await refreshSessions(accessToken);
+      // A new session is always logged for right now, so jump the view back
+      // to today if you'd been browsing a past day.
+      const today = todayUtc();
+      if (selectedDate !== today) {
+        setSelectedDate(today);
+      } else {
+        await refreshSessions(accessToken, today);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to log workout");
     } finally {
@@ -145,7 +157,7 @@ export default function WorkoutsPage() {
     if (!accessToken) return;
     try {
       await apiFetch(`/api/v1/workouts/${id}`, accessToken, { method: "DELETE" });
-      await refreshSessions(accessToken);
+      await refreshSessions(accessToken, selectedDate);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete workout");
     }
@@ -252,14 +264,19 @@ export default function WorkoutsPage() {
         )}
       </Card>
 
-      <h2 className="mb-2 text-sm font-medium text-text-muted">Workout history</h2>
+      <DateNav date={selectedDate} onChange={setSelectedDate} />
+
+      <h2 className="mb-2 text-sm font-medium text-text-muted">Workouts — {dayLabel(selectedDate)}</h2>
       {sessions.length === 0 && <p className="text-sm text-text-muted">Nothing logged yet.</p>}
       <ul className="space-y-3">
         {sessions.map((session) => (
           <Card key={session.id}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
-                {new Date(session.started_at).toLocaleDateString()}
+                {new Date(session.started_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-text-muted">

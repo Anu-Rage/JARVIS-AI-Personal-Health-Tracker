@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from supabase import Client
 
 from app.domain.dates import day_bounds_utc
-from app.services import analytics_service, nutrition_service
+from app.services import analytics_service, meal_service, nutrition_service
 
 
 def get_dashboard(client: Client, user_id: str) -> dict:
@@ -19,6 +19,7 @@ def get_dashboard(client: Client, user_id: str) -> dict:
     )
 
     nutrition = nutrition_service.get_daily_nutrition(client, user_id, today)
+    today_meals = meal_service.list_meals(client, user_id, today)
 
     workout_result = (
         client.table("workout_sessions")
@@ -46,6 +47,7 @@ def get_dashboard(client: Client, user_id: str) -> dict:
     return {
         "profile": profile_result.data,
         "nutrition": nutrition,
+        "today_meals": today_meals,
         "workout_completed_today": len(workout_result.data) > 0,
         "recent_weight": weight_result.data if weight_result else None,
         "weekly_summary": analytics_service.get_weekly_summary(client, user_id),

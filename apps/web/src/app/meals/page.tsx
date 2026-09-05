@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { SearchDropdown } from "@/components/ui/SearchDropdown";
-import type { Food, Meal, PhotoAnalysisResponse } from "@jarvis/types";
+import { DateNav, dayLabel, todayUtc } from "@/components/ui/DateNav";
+import { StatTile } from "@/components/ui/StatTile";
+import type { DailyNutrition, Food, Meal, PhotoAnalysisResponse } from "@jarvis/types";
 
 type MealType = Meal["meal_type"];
 
@@ -49,7 +51,9 @@ export default function MealsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(todayUtc());
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [dailyNutrition, setDailyNutrition] = useState<DailyNutrition | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Food[]>([]);
   const [draft, setDraft] = useState<DraftItem[]>([]);
@@ -69,8 +73,11 @@ export default function MealsPage() {
   }, [supabase]);
 
   useEffect(() => {
-    if (accessToken) refreshMeals(accessToken);
-  }, [accessToken]);
+    if (accessToken) {
+      refreshMeals(accessToken, selectedDate);
+      refreshDailyNutrition(accessToken, selectedDate);
+    }
+  }, [accessToken, selectedDate]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -88,12 +95,24 @@ export default function MealsPage() {
     return () => clearTimeout(handle);
   }, [query, accessToken]);
 
-  async function refreshMeals(token: string) {
+  async function refreshMeals(token: string, forDate: string) {
     try {
-      const data = await apiFetch<Meal[]>("/api/v1/meals", token);
+      const data = await apiFetch<Meal[]>(`/api/v1/meals?for_date=${forDate}`, token);
       setMeals(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load meals");
+    }
+  }
+
+  async function refreshDailyNutrition(token: string, forDate: string) {
+    try {
+      const data = await apiFetch<DailyNutrition>(
+        `/api/v1/nutrition/daily?for_date=${forDate}`,
+        token,
+      );
+      setDailyNutrition(data);
+    } catch {
+      // the meal list above still renders fine without the summary card
     }
   }
 
@@ -222,7 +241,16 @@ export default function MealsPage() {
       setDraft([]);
       setUnresolvedPhotoItems([]);
       setMealSource("manual");
-      await refreshMeals(accessToken);
+      // A new meal is always logged for right now, so jump the view back to
+      // today if you'd been browsing a past day -- otherwise it'd silently
+      // vanish from the list you're looking at.
+      const today = todayUtc();
+      if (selectedDate !== today) {
+        setSelectedDate(today);
+      } else {
+        await refreshMeals(accessToken, today);
+        await refreshDailyNutrition(accessToken, today);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to log meal");
     } finally {
@@ -234,7 +262,8 @@ export default function MealsPage() {
     if (!accessToken) return;
     try {
       await apiFetch(`/api/v1/meals/${id}`, accessToken, { method: "DELETE" });
-      await refreshMeals(accessToken);
+      await refreshMeals(accessToken, selectedDate);
+      await refreshDailyNutrition(accessToken, selectedDate);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete meal");
     }
@@ -385,7 +414,28 @@ export default function MealsPage() {
         )}
       </Card>
 
-      <h2 className="mb-2 text-sm font-medium text-text-muted">Today&apos;s meals</h2>
+      <DateNav date={selectedDate} onChange={setSelectedDate} />
+
+      {dailyNutrition && dailyNutrition.meal_count > 0 && (
+        <Card className="mb-4">
+          <div className="grid grid-cols-2 gap-2">
+            <StatTile
+              label="Calories"
+              value={Math.round(dailyNutrition.totals.calories)}
+              unit="kcal"
+            />
+            <StatTile
+              label="Protein"
+              value={Math.round(dailyNutrition.totals.protein_g)}
+              unit="g"
+            />
+            <StatTile label="Carbs" value={Math.round(dailyNutrition.totals.carbs_g)} unit="g" />
+            <StatTile label="Fat" value={Math.round(dailyNutrition.totals.fat_g)} unit="g" />
+          </div>
+        </Card>
+      )}
+
+      <h2 className="mb-2 text-sm font-medium text-text-muted">Meals — {dayLabel(selectedDate)}</h2>
       {meals.length === 0 && <p className="text-sm text-text-muted">Nothing logged yet.</p>}
       <ul className="space-y-3">
         {meals.map((meal) => (

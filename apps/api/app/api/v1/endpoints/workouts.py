@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import get_current_user_id
@@ -9,9 +11,12 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[WorkoutSession])
-def list_workouts(user_id: str = Depends(get_current_user_id)) -> list[dict]:
+def list_workouts(
+    for_date: date | None = None,
+    user_id: str = Depends(get_current_user_id),
+) -> list[dict]:
     client = get_service_client()
-    return workout_service.list_sessions(client, user_id)
+    return workout_service.list_sessions(client, user_id, for_date)
 
 
 @router.post("", response_model=WorkoutSession, status_code=201)

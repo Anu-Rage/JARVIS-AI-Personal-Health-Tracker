@@ -89,6 +89,40 @@ export default async function DashboardPage() {
 
           <Card className="mb-4">
             <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-text-muted">Logged today</h2>
+              <Link href="/meals" className="text-xs text-primary">
+                View history
+              </Link>
+            </div>
+            {dashboard.today_meals.length === 0 ? (
+              <p className="text-sm text-text-muted">Nothing logged yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {dashboard.today_meals.map((meal) => (
+                  <li key={meal.id}>
+                    <p className="text-xs font-medium capitalize text-text-muted">
+                      {meal.meal_type}
+                    </p>
+                    <ul className="text-sm">
+                      {meal.meal_items?.map((item) => (
+                        <li key={item.id}>
+                          {item.quantity}x {item.food_name} — {Math.round(item.calories)} kcal
+                          {item.nutrition_confidence === "estimated" && (
+                            <span className="ml-1 text-xs italic text-text-muted">
+                              (estimated)
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-medium text-text-muted">This week</h2>
               <span className="text-xs text-text-muted">
                 {dashboard.weekly_summary.days_logged}/{dashboard.weekly_summary.period_days} days

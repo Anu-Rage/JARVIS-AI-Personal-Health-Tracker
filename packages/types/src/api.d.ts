@@ -57,6 +57,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/foods/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Estimate Food */
+        post: operations["estimate_food_api_v1_foods_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meals": {
         parameters: {
             query?: never;
@@ -138,6 +155,23 @@ export interface paths {
         put?: never;
         /** Create Exercise */
         post: operations["create_exercise_api_v1_exercises_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exercises/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Estimate Exercise */
+        post: operations["estimate_exercise_api_v1_exercises_estimate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -441,6 +475,8 @@ export interface components {
         DashboardResponse: {
             profile: components["schemas"]["UserProfile"];
             nutrition: components["schemas"]["DailyNutrition"];
+            /** Today Meals */
+            today_meals: components["schemas"]["Meal"][];
             /** Workout Completed Today */
             workout_completed_today: boolean;
             recent_weight: components["schemas"]["BodyMetric"] | null;
@@ -468,6 +504,11 @@ export interface components {
              */
             category: "strength" | "cardio" | "mobility" | "other";
         };
+        /** ExerciseEstimateRequest */
+        ExerciseEstimateRequest: {
+            /** Name */
+            name: string;
+        };
         /** Food */
         Food: {
             /** Id */
@@ -490,6 +531,11 @@ export interface components {
             name: string;
             /** Servings */
             servings: components["schemas"]["FoodServingCreate"][];
+        };
+        /** FoodEstimateRequest */
+        FoodEstimateRequest: {
+            /** Name */
+            name: string;
         };
         /** FoodServing */
         FoodServing: {
@@ -1051,6 +1097,39 @@ export interface operations {
             };
         };
     };
+    estimate_food_api_v1_foods_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Food"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_meals_api_v1_meals_get: {
         parameters: {
             query?: {
@@ -1272,9 +1351,44 @@ export interface operations {
             };
         };
     };
-    list_workouts_api_v1_workouts_get: {
+    estimate_exercise_api_v1_exercises_estimate_post: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workouts_api_v1_workouts_get: {
+        parameters: {
+            query?: {
+                for_date?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1288,6 +1402,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutSession"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

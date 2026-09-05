@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from supabase import Client
 
+from app.domain.dates import day_bounds_utc
 from app.domain.workout import SetVolume, calculate_total_volume
 from app.schemas.workout import WorkoutSessionCreate
 
@@ -96,16 +97,18 @@ def get_session(client: Client, user_id: str, session_id: str) -> dict | None:
     return _with_computed_volume(result.data)
 
 
-def list_sessions(client: Client, user_id: str) -> list[dict]:
-    result = (
+def list_sessions(client: Client, user_id: str, for_date: date | None = None) -> list[dict]:
+    request = (
         client.table("workout_sessions")
         .select(_SESSION_SELECT)
         .eq("user_id", user_id)
         .is_("deleted_at", "null")
         .order("started_at", desc=True)
-        .execute()
     )
-    return [_with_computed_volume(session) for session in result.data]
+    if for_date is not None:
+        start, end = day_bounds_utc(for_date)
+        request = request.gte("started_at", start).lte("started_at", end)
+    return [_with_computed_volume(session) for session in request.execute().data]
 
 
 def soft_delete_session(client: Client, user_id: str, session_id: str) -> bool:
