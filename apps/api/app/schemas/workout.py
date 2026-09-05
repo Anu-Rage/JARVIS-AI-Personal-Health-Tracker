@@ -17,6 +17,10 @@ class ExerciseCreate(BaseModel):
     category: ExerciseCategory
 
 
+class ExerciseEstimateRequest(BaseModel):
+    name: str
+
+
 class WorkoutSet(BaseModel):
     id: str
     set_number: int

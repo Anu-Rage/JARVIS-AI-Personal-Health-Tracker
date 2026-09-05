@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SearchDropdown } from "@/components/ui/SearchDropdown";
 import type { Food, Meal, PhotoAnalysisResponse } from "@jarvis/types";
 
 type MealType = Meal["meal_type"];
@@ -58,6 +59,7 @@ export default function MealsPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [estimatingFood, setEstimatingFood] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -109,6 +111,23 @@ export default function MealsPage() {
     ]);
     setQuery("");
     setResults([]);
+  }
+
+  async function estimateNewFood(name: string) {
+    if (!accessToken) return;
+    setEstimatingFood(true);
+    setError(null);
+    try {
+      const food = await apiFetch<Food>("/api/v1/foods/estimate", accessToken, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      addToDraft(food);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to estimate that food");
+    } finally {
+      setEstimatingFood(false);
+    }
   }
 
   function updateQuantity(index: number, quantity: number) {
@@ -247,14 +266,31 @@ export default function MealsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Input
-            type="text"
-            autoComplete="off"
-            placeholder="Search foods (e.g. idli, egg, rice)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1"
-          />
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              autoComplete="off"
+              placeholder="Search foods (e.g. idli, egg, rice)"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <SearchDropdown
+              items={results}
+              getKey={(food) => food.id}
+              onSelect={addToDraft}
+              renderItem={(food) => (
+                <>
+                  {food.name}
+                  <span className="ml-2 text-xs text-text-muted">
+                    {food.food_servings?.[0]?.serving_description}
+                  </span>
+                </>
+              )}
+              query={query}
+              onEstimate={estimateNewFood}
+              estimating={estimatingFood}
+            />
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -272,25 +308,6 @@ export default function MealsPage() {
             {analyzingPhoto ? "..." : "📷"}
           </Button>
         </div>
-
-        {results.length > 0 && (
-          <ul className="mt-1 divide-y divide-border rounded-lg border border-border">
-            {results.map((food) => (
-              <li key={food.id}>
-                <button
-                  type="button"
-                  onClick={() => addToDraft(food)}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg"
-                >
-                  {food.name}
-                  <span className="ml-2 text-xs text-text-muted">
-                    {food.food_servings?.[0]?.serving_description}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {unresolvedPhotoItems.length > 0 && (
           <ul className="mt-4 space-y-2">

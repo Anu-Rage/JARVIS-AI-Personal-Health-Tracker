@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SearchDropdown } from "@/components/ui/SearchDropdown";
 import type { Exercise, WorkoutSession } from "@jarvis/types";
 
 interface DraftSet {
@@ -29,6 +30,7 @@ export default function WorkoutsPage() {
   const [draft, setDraft] = useState<DraftExercise[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [estimatingExercise, setEstimatingExercise] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -69,6 +71,23 @@ export default function WorkoutsPage() {
     setDraft((prev) => [...prev, { exercise, sets: [{ reps: 8, weight_kg: 0 }] }]);
     setQuery("");
     setResults([]);
+  }
+
+  async function estimateNewExercise(name: string) {
+    if (!accessToken) return;
+    setEstimatingExercise(true);
+    setError(null);
+    try {
+      const exercise = await apiFetch<Exercise>("/api/v1/exercises/estimate", accessToken, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      addExercise(exercise);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to add that exercise");
+    } finally {
+      setEstimatingExercise(false);
+    }
   }
 
   function addSet(exerciseIndex: number) {
@@ -140,32 +159,31 @@ export default function WorkoutsPage() {
       )}
 
       <Card className="mb-4">
-        <Input
-          type="text"
-          autoComplete="off"
-          placeholder="Search exercises (e.g. squat, pull-up)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-
-        {results.length > 0 && (
-          <ul className="mt-1 divide-y divide-border rounded-lg border border-border">
-            {results.map((exercise) => (
-              <li key={exercise.id}>
-                <button
-                  type="button"
-                  onClick={() => addExercise(exercise)}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg"
-                >
-                  {exercise.name}
-                  <span className="ml-2 text-xs capitalize text-text-muted">
-                    {exercise.category}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="relative">
+          <Input
+            type="text"
+            autoComplete="off"
+            placeholder="Search exercises (e.g. squat, pull-up)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <SearchDropdown
+            items={results}
+            getKey={(exercise) => exercise.id}
+            onSelect={addExercise}
+            renderItem={(exercise) => (
+              <>
+                {exercise.name}
+                <span className="ml-2 text-xs capitalize text-text-muted">
+                  {exercise.category}
+                </span>
+              </>
+            )}
+            query={query}
+            onEstimate={estimateNewExercise}
+            estimating={estimatingExercise}
+          />
+        </div>
 
         {draft.length > 0 && (
           <ul className="mt-4 space-y-3">

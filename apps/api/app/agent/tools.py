@@ -35,7 +35,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "log_meal",
-            "description": "Log a meal the user describes, e.g. '2 eggs and 4 idlis for breakfast'. Each food is resolved against the food database -- if a food can't be found, the tool reports which ones failed instead of guessing at nutrition values.",
+            "description": "Log a meal the user describes, e.g. '2 eggs and 4 idlis for breakfast'. Each food is matched against the food database; if a food isn't found, its nutrition is estimated automatically and saved to the database for next time -- always tell the user when an item was estimated rather than exact.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -86,7 +86,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "log_workout",
-            "description": "Log a workout the user describes, e.g. '3 sets of pull-ups, 8 reps each'. Each exercise is resolved against the exercise database.",
+            "description": "Log a workout the user describes, e.g. '3 sets of pull-ups, 8 reps each'. Each exercise is matched against the exercise database; a new exercise is added automatically if it isn't found yet.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -162,31 +162,22 @@ def _handle_get_daily_nutrition(client: Client, user_id: str, args: dict) -> dic
 
 def _handle_log_meal(client: Client, user_id: str, args: dict) -> dict:
     resolved: list[MealItemCreate] = []
-    unresolved: list[str] = []
+    estimated_foods: list[str] = []
 
     for item in args.get("items", []):
         match = food_service.resolve_food_serving_by_name(client, item["food_name"])
         if match is None:
-            unresolved.append(item["food_name"])
-        else:
-            resolved.append(
-                MealItemCreate(
-                    food_id=match["food_id"],
-                    serving_id=match["serving_id"],
-                    quantity=item["quantity"],
-                )
+            food = food_service.estimate_and_create_food(client, item["food_name"])
+            serving = food["food_servings"][0]
+            match = {"food_id": food["id"], "serving_id": serving["id"]}
+            estimated_foods.append(item["food_name"])
+        resolved.append(
+            MealItemCreate(
+                food_id=match["food_id"],
+                serving_id=match["serving_id"],
+                quantity=item["quantity"],
             )
-
-    if unresolved:
-        return {
-            "success": False,
-            "error": "food_not_found",
-            "unresolved_foods": unresolved,
-            "message": (
-                f"Could not find these in the food database: {', '.join(unresolved)}. "
-                "Ask the user to clarify the exact name, or tell them to add it via the app first."
-            ),
-        }
+        )
 
     meal_data = MealCreate(
         logged_at=datetime.now(timezone.utc),
@@ -195,7 +186,14 @@ def _handle_log_meal(client: Client, user_id: str, args: dict) -> dict:
         input_source="text",
     )
     meal = meal_service.create_meal(client, user_id, meal_data)
-    return {"success": True, "meal": meal}
+    result = {"success": True, "meal": meal}
+    if estimated_foods:
+        result["estimated_foods"] = estimated_foods
+        result["note"] = (
+            f"These weren't in the food database, so their nutrition was AI-estimated "
+            f"rather than exact: {', '.join(estimated_foods)}. Tell the user this."
+        )
+    return result
 
 
 def _handle_get_workout_history(client: Client, user_id: str, args: dict) -> dict:
@@ -206,33 +204,28 @@ def _handle_get_workout_history(client: Client, user_id: str, args: dict) -> dic
 
 def _handle_log_workout(client: Client, user_id: str, args: dict) -> dict:
     resolved: list[WorkoutExerciseCreate] = []
-    unresolved: list[str] = []
+    new_exercises: list[str] = []
 
     for exercise in args.get("exercises", []):
         match = exercise_service.resolve_exercise_by_name(client, exercise["exercise_name"])
         if match is None:
-            unresolved.append(exercise["exercise_name"])
-        else:
-            sets = [
-                WorkoutSetCreate(reps=s["reps"], weight_kg=s["weight_kg"])
-                for s in exercise["sets"]
-            ]
-            resolved.append(WorkoutExerciseCreate(exercise_id=match["id"], sets=sets))
-
-    if unresolved:
-        return {
-            "success": False,
-            "error": "exercise_not_found",
-            "unresolved_exercises": unresolved,
-            "message": (
-                f"Could not find these in the exercise database: {', '.join(unresolved)}. "
-                "Ask the user to clarify the exact name, or tell them to add it via the app first."
-            ),
-        }
+            match = exercise_service.classify_and_create_exercise(client, exercise["exercise_name"])
+            new_exercises.append(exercise["exercise_name"])
+        sets = [
+            WorkoutSetCreate(reps=s["reps"], weight_kg=s["weight_kg"]) for s in exercise["sets"]
+        ]
+        resolved.append(WorkoutExerciseCreate(exercise_id=match["id"], sets=sets))
 
     session_data = WorkoutSessionCreate(started_at=datetime.now(timezone.utc), exercises=resolved)
     session = workout_service.create_session(client, user_id, session_data)
-    return {"success": True, "workout": session}
+    result = {"success": True, "workout": session}
+    if new_exercises:
+        result["new_exercises"] = new_exercises
+        result["note"] = (
+            f"These weren't in the exercise database, so they were added as new: "
+            f"{', '.join(new_exercises)}. Tell the user this."
+        )
+    return result
 
 
 def _handle_calculate_remaining_macros(client: Client, user_id: str, args: dict) -> dict:

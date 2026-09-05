@@ -31,7 +31,10 @@ def create_meal(client: Client, user_id: str, data: MealCreate) -> dict:
     confidence = _CONFIDENCE_BY_SOURCE[data.input_source]
     serving_ids = [item.serving_id for item in data.items]
     servings_result = (
-        client.table("food_servings").select("*").in_("id", serving_ids).execute()
+        client.table("food_servings")
+        .select("*, foods!food_servings_food_id_fkey(source)")
+        .in_("id", serving_ids)
+        .execute()
     )
     servings_by_id = {row["id"]: row for row in servings_result.data}
 
@@ -69,13 +72,19 @@ def create_meal(client: Client, user_id: str, data: MealCreate) -> dict:
             ),
             item.quantity,
         )
+        # An AI-estimated food's macros are never as reliable as a verified
+        # one, regardless of how the user logged it (typed, spoken, or
+        # manually picked from search) -- the item-level confidence must
+        # reflect the food itself, not just the meal's input_source.
+        food_source = (serving.get("foods") or {}).get("source")
+        item_confidence = "estimated" if food_source == "ai_estimated" else confidence
         meal_items_payload.append(
             {
                 "meal_id": meal["id"],
                 "food_id": item.food_id,
                 "serving_id": item.serving_id,
                 "quantity": item.quantity,
-                "nutrition_confidence": confidence,
+                "nutrition_confidence": item_confidence,
                 "calories": nutrition.calories,
                 "protein_g": nutrition.protein_g,
                 "carbs_g": nutrition.carbs_g,

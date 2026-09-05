@@ -36,3 +36,7 @@ class FoodServingCreate(BaseModel):
 class FoodCreate(BaseModel):
     name: str
     servings: list[FoodServingCreate] = Field(min_length=1)
+
+
+class FoodEstimateRequest(BaseModel):
+    name: str
