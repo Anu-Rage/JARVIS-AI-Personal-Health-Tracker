@@ -9,13 +9,25 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { JarvisOrb, type JarvisOrbState } from "@/components/JarvisOrb";
 import { VoiceRecorder, isVoiceRecordingSupported } from "@/lib/audio/recorder";
-import { playAudioWithAmplitude } from "@/lib/audio/playback";
+import { VoicePlayer } from "@/lib/audio/playback";
 import type { ChatResponse, VoiceChatResponse } from "@jarvis/types";
 
 interface DisplayMessage {
   role: "user" | "assistant";
   content: string;
   toolsCalled?: string[];
+}
+
+// iOS Safari's MediaRecorder produces audio/mp4, not audio/webm like
+// Chrome/Firefox -- upload the extension Whisper actually expects for
+// whatever format the browser recorded, instead of a hardcoded ".webm"
+// that silently mismatched the real content on iPhone.
+function extensionForMimeType(mimeType: string): string {
+  if (mimeType.includes("mp4")) return "mp4";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("wav")) return "wav";
+  if (mimeType.includes("mpeg") || mimeType.includes("mp3")) return "mp3";
+  return "webm";
 }
 
 const GREETING =
@@ -46,6 +58,7 @@ export default function ChatPage() {
   const [amplitude, setAmplitude] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const recorderRef = useRef<VoiceRecorder | null>(null);
+  const playerRef = useRef<VoicePlayer | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -107,7 +120,7 @@ export default function ChatPage() {
 
     try {
       const formData = new FormData();
-      formData.append("audio", blob, "recording.webm");
+      formData.append("audio", blob, `recording.${extensionForMimeType(blob.type)}`);
       formData.append(
         "history",
         JSON.stringify(messages.map((m) => ({ role: m.role, content: m.content }))),
@@ -134,7 +147,7 @@ export default function ChatPage() {
       ]);
 
       setOrbState("speaking");
-      await playAudioWithAmplitude(result.audio_base64, (level) => setAmplitude(level));
+      await playerRef.current?.playBase64(result.audio_base64, (level) => setAmplitude(level));
       setOrbState("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Voice chat failed");
@@ -143,6 +156,14 @@ export default function ChatPage() {
   }
 
   function toggleRecording() {
+    // Must run synchronously inside this click handler, before any await --
+    // iOS Safari only allows programmatic audio playback if the element was
+    // played (even silently) as a direct result of a user gesture. This
+    // "unlocks" it for the later playBase64() call that happens after the
+    // network round-trip, once the gesture would otherwise have expired.
+    if (!playerRef.current) playerRef.current = new VoicePlayer();
+    playerRef.current.unlock();
+
     if (isRecording) {
       stopRecordingAndSend();
     } else {
