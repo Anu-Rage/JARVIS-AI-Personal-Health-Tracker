@@ -28,3 +28,6 @@ export type ChatResponse = components["schemas"]["ChatResponse"];
 export type PhotoAnalysisItem = components["schemas"]["PhotoAnalysisItem"];
 export type PhotoAnalysisResponse = components["schemas"]["PhotoAnalysisResponse"];
 export type ResolvedFood = components["schemas"]["ResolvedFood"];
+export type Goal = components["schemas"]["Goal"];
+export type GoalCreate = components["schemas"]["GoalCreate"];
+export type WeeklySummary = components["schemas"]["WeeklySummary"];

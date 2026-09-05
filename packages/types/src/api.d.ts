@@ -21,6 +21,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Goal */
+        get: operations["get_goal_api_v1_goals_get"];
+        put?: never;
+        /** Set Goal */
+        post: operations["set_goal_api_v1_goals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/foods": {
         parameters: {
             query?: never;
@@ -265,6 +283,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/weekly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Weekly Summary */
+        get: operations["get_weekly_summary_api_v1_analytics_weekly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -362,6 +397,7 @@ export interface components {
             /** Workout Completed Today */
             workout_completed_today: boolean;
             recent_weight: components["schemas"]["BodyMetric"] | null;
+            weekly_summary: components["schemas"]["WeeklySummary"];
         };
         /** Exercise */
         Exercise: {
@@ -453,6 +489,41 @@ export interface components {
              * @default 0
              */
             fiber_g: number;
+        };
+        /** Goal */
+        Goal: {
+            /** Id */
+            id: string;
+            /** Calorie Target */
+            calorie_target: number | null;
+            /** Protein Target G */
+            protein_target_g: number | null;
+            /** Carb Target G */
+            carb_target_g: number | null;
+            /** Fat Target G */
+            fat_target_g: number | null;
+            /** Weight Goal Kg */
+            weight_goal_kg: number | null;
+            /** Active */
+            active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** GoalCreate */
+        GoalCreate: {
+            /** Calorie Target */
+            calorie_target?: number | null;
+            /** Protein Target G */
+            protein_target_g?: number | null;
+            /** Carb Target G */
+            carb_target_g?: number | null;
+            /** Fat Target G */
+            fat_target_g?: number | null;
+            /** Weight Goal Kg */
+            weight_goal_kg?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -655,6 +726,37 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** WeeklySummary */
+        WeeklySummary: {
+            /** Period Days */
+            period_days: number;
+            /** Days Logged */
+            days_logged: number;
+            /** Avg Calories */
+            avg_calories: number | null;
+            /** Avg Protein G */
+            avg_protein_g: number | null;
+            /** Avg Carbs G */
+            avg_carbs_g: number | null;
+            /** Avg Fat G */
+            avg_fat_g: number | null;
+            /** Calorie Adherence Rate */
+            calorie_adherence_rate: number | null;
+            /** Workout Count */
+            workout_count: number;
+            /** Workout Total Volume Kg */
+            workout_total_volume_kg: number;
+            /** Meal Logging Streak */
+            meal_logging_streak: number;
+            /** Workout Logging Streak */
+            workout_logging_streak: number;
+            /** Weight Start */
+            weight_start: number | null;
+            /** Weight End */
+            weight_end: number | null;
+            /** Weight Change */
+            weight_change: number | null;
+        };
         /** WorkoutExercise */
         WorkoutExercise: {
             /** Id */
@@ -764,6 +866,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserProfile"];
+                };
+            };
+        };
+    };
+    get_goal_api_v1_goals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"] | null;
+                };
+            };
+        };
+    };
+    set_goal_api_v1_goals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Goal"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1370,6 +1525,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_weekly_summary_api_v1_analytics_weekly_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklySummary"];
                 };
             };
         };

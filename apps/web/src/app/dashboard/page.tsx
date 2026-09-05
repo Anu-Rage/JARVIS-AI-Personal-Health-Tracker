@@ -34,12 +34,17 @@ export default async function DashboardPage() {
     <AppShell>
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Today</h1>
-        <Link
-          href="/meals"
-          className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-        >
-          + Log a meal
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/goals" className="text-xs text-text-muted underline">
+            Goals
+          </Link>
+          <Link
+            href="/meals"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+          >
+            + Log a meal
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -79,6 +84,62 @@ export default async function DashboardPage() {
               {dashboard.nutrition.meal_count} meal
               {dashboard.nutrition.meal_count === 1 ? "" : "s"} logged today
             </p>
+          </Card>
+
+          <Card className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-text-muted">This week</h2>
+              <span className="text-xs text-text-muted">
+                {dashboard.weekly_summary.days_logged}/{dashboard.weekly_summary.period_days} days
+                logged
+              </span>
+            </div>
+
+            {dashboard.weekly_summary.days_logged > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatTile
+                    label="Avg calories"
+                    value={Math.round(dashboard.weekly_summary.avg_calories ?? 0)}
+                    unit="kcal"
+                  />
+                  <StatTile
+                    label="Avg protein"
+                    value={Math.round(dashboard.weekly_summary.avg_protein_g ?? 0)}
+                    unit="g"
+                  />
+                </div>
+                {dashboard.weekly_summary.calorie_adherence_rate != null && (
+                  <p className="mt-3 text-sm text-text-muted">
+                    {Math.round(dashboard.weekly_summary.calorie_adherence_rate * 100)}% of days
+                    within your calorie target
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-text-muted">No meals logged this week yet.</p>
+            )}
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <StatTile label="Workouts" value={dashboard.weekly_summary.workout_count} unit="sessions" />
+              <StatTile
+                label="Volume"
+                value={Math.round(dashboard.weekly_summary.workout_total_volume_kg)}
+                unit="kg"
+              />
+            </div>
+
+            <p className="mt-3 text-xs text-text-muted">
+              {dashboard.weekly_summary.meal_logging_streak}-day meal streak ·{" "}
+              {dashboard.weekly_summary.workout_logging_streak}-day workout streak
+            </p>
+
+            {dashboard.weekly_summary.weight_change != null && (
+              <p className="mt-1 text-xs text-text-muted">
+                Weight {dashboard.weekly_summary.weight_change > 0 ? "+" : ""}
+                {dashboard.weekly_summary.weight_change.toFixed(1)}kg this week
+              </p>
+            )}
           </Card>
 
           <Card className="mb-4 flex items-center justify-between">
